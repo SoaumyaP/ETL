@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+    <bean id="HKG-DB-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:conf/db/db-HKHKG.properties</value>
+            </list>
+        </property>
+        <property name="placeholderPrefix" value="$hkg{" />
+        <property name="placeholderSuffix" value="}" />
+    </bean>
+
+    <bean id="hkgDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="$hkg{DriverName}" />
+        <property name="url" value="$hkg{URL};database=$hkg{DataBaseName};instance=$hkg{DataBaseInstance};appName=$hkg{DataBaseAppName};autoReconnect=true;" />
+        <property name="username" value="$hkg{USERNAME}" />
+        <property name="password" value="$hkg{PASSWORD}" />
+        <property name="validationQuery" value="SELECT 1" />
+        <property name="testOnBorrow" value="true" />
+    </bean>
+
+    <!-- HKG session factory -->
+    <bean id="HKGHKSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="hkgDataSource"/>
+        <!-- <property name="mapperLocations" value="classpath*:com/XXX/mapper/**/*.xml" /> -->
+        <property name="configLocation" value="classpath:test/mybatis-test-config.xml"/>
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.csfe.edison.business.dao" />
+        <property name="sqlSessionFactoryBeanName" value="HKGHKSessionFactory" />
+    </bean>
+    <bean id="HKGHKTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="hkgDataSource"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="HKGHKTransactionManager"/>
+    <tx:advice id="HKGHKTxAdvice" transaction-manager="HKGHKTransactionManager">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED" read-only="false" rollback-for="com.csfe.common.CSFEException" />
+            <tx:method name="*" propagation="REQUIRED" read-only="true" isolation="READ_UNCOMMITTED" />
+        </tx:attributes>
+    </tx:advice>
+    <aop:config>
+        <aop:advisor pointcut-ref="HKGHKServiceOperation" advice-ref="HKGHKTxAdvice" />
+        <aop:aspect id="HKGHKAspect" ref="HKGHKService">
+            <aop:pointcut id="HKGHKServiceOperation" expression="execution(* com.csfe.edison.business.service.UpdatePaymentStatusServiceImpl.*(..))" />
+        </aop:aspect>
+    </aop:config>
+    <bean id="HKGHKService" class="com.csfe.edison.business.service.UpdatePaymentStatusServiceImpl">
+        <property name="dbName" value="EDISON_PRC_HKG_NVO_TEST" />
+    </bean>
+</beans>

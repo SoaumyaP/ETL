@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="email-DB-PC"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:conf/db/dbEmailDelivery.properties</value>
+            </list>
+        </property>
+        <property name="placeholderPrefix" value="$email{" />
+        <property name="placeholderSuffix" value="}" />
+    </bean>
+
+    <bean id="emailDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="$email{DriverName}" />
+        <property name="url" value="$email{URL}$email{DataBaseName};instance=$email{DataBaseInstance};appName=$email{DataBaseAppName};autoReconnect=true;" />
+        <property name="username" value="$email{USERNAME}" />
+        <property name="password" value="$email{PASSWORD}" />
+        <property name="validationQuery" value="SELECT 1" />
+        <property name="testOnBorrow" value="true" />
+    </bean>
+
+    <bean id="emailSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="emailDataSource" />
+        <property name="configLocation" value="classpath:test/mybatis-test-config.xml" />
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.csfe.common.business.dao.delivery" />
+        <property name="sqlSessionFactoryBeanName" value="emailSessionFactory" />
+    </bean>
+    <bean id="emailTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="emailDataSource" />
+    </bean>
+    <tx:annotation-driven transaction-manager="emailTransactionManager" />
+
+</beans>

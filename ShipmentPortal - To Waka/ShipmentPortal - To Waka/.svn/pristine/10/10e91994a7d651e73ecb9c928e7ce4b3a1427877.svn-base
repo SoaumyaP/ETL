@@ -1,0 +1,41 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.trs.business.dao.log.EDIProcessLogDAO">
+
+	<sql id="dbName">[CSHKG_EDI_GATEWAY_TEST].[dbo].[EDIProcessLog]</sql>
+	<sql id="list"><foreach item="item" index="index" collection="list" open="(" separator="," close=")">#{item}</foreach></sql>
+	<select id="findEDIProcessLogByBKNO" resultType="EDIProcessLog">
+		SELECT e.[ID] AS id
+      ,e.[Channel] AS channel
+      ,e.[ProjectID] AS projectID
+      ,e.[PType] AS ptype
+      ,e.[PAction] AS paction
+      ,e.[RefClass] AS refClass
+      ,e.[RefID] AS refID
+      ,e.[SYSID] AS sysid
+      ,e.[Path] AS path
+      ,e.[Filename] AS filename
+      ,e.[DisplayFilename] AS displayFilename
+      ,e.[Ext] AS ext
+      ,e.[ErrCode] AS errCode
+      ,e.[Remarks] AS remarks
+      ,e.[Status] AS status
+      ,e.[CreatedBy] AS createdBy
+      ,e.[CreatedOn] AS createdOn
+      ,e.[UpdatedBy] AS updatedBy
+      ,e.[UpdatedOn] AS updatedOn
+	  FROM <include refid="dbName"/> e 
+	  where e.[Channel] = 'OUT'
+	  AND e.[ProjectID] = #{ProjectID}
+	  AND e.[PType] = #{PType}
+	  AND e.[RefClass] = #{RefClass}
+	  AND e.[SYSID] = #{SYSID}
+	  AND e.[STATUS] = 'DONE'
+	  AND e.[RefID] in <include refid="list"/>
+	</select>
+ 	<insert id="saveEDIProcessLog" parameterType="EDIProcessLog">
+       	INSERT INTO <include refid="dbName"/> ([Channel],[ProjectID],[PType],[PAction],[RefClass],[RefID],[SYSID],[Path],[Filename],[DisplayFilename],[Ext],[ErrCode],[Remarks],[Status],[CreatedBy],[CreatedOn],[UpdatedBy],[UpdatedOn])
+		VALUES(#{channel},#{projectID},#{ptype},#{paction},#{refClass},#{refID},#{sysID},#{path},#{filename},#{displayFilename},#{ext},#{errCode},#{remarks},#{status},#{createdBy},#{createdOn},#{updatedBy},#{updatedOn})
+    </insert>
+</mapper>

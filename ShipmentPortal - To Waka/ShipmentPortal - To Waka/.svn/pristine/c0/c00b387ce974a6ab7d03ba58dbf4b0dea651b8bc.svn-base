@@ -1,0 +1,7 @@
+#Forgotpassword
+forgotPassword.success = Password has been reset, please check your email.
+forgotPassword.NotFound = Invalid email address. Please try again or contact your administrator in need.
+resetPassword.newPassword.NotSame=Password is not match.
+resetPassword.success=Password has been reset.
+resetPassword.failure=Problem in resetting password. Please try again.
+resetPassword.newPassword.NotMatchPattern=Password must contain at least 6 numeric or alphabetic.

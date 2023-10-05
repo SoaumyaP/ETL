@@ -1,0 +1,20 @@
+## Backend Program Setting
+System.ServiceHandler = AzureTRSService
+
+## Count => process records for each times.
+## Times => process the number of time.
+## If count is 500 and times is 2, that mean there are 500 X 2 = 1000 records will be process.
+## When count is 0, the records are unlimited for the process.
+## When times is 0, the process times are unlimited and the system will process all records.
+System.process.count = 1
+System.process.times = 1
+
+## if the day is 10, mean today - 10 day
+DAY.cutOff=2
+## API url
+API.url=/api/POFulfillmentItineraries
+
+TRS.ProjectID=CSP-API
+TRS.Ptype=BOOKING-CFM
+TRS.RefClass=com.csfe.csportal.business.entity.BookingConfirm
+TRS.SysID=CSHKG_EBOOKING

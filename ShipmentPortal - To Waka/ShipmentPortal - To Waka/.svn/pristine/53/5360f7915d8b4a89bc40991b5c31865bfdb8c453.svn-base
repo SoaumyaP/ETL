@@ -1,0 +1,105 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.trs.business.dao.edison.EdisonDAO">
+	<sql id="dbVesvoyforwarder">
+		<if test="'EDISON_PRC_QDO_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_SZN_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_HKG_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_SHA_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_TJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_QDO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_HKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_NJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_SZN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_NBO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_DLN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_FZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_XMN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_SHA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_GZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_SIN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_CAN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_CKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_DLC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_FOC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_FOS_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_HGH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_IND_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_NSA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_STO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_TAO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+		<if test="'EDISON_PRC_WUH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Vesvoyforwarder</if>
+	</sql>
+	<sql id="dbSOHeader">
+		<if test="'EDISON_PRC_QDO_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_SZN_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_HKG_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_SHA_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_TJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_QDO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_HKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_NJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_SZN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_NBO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_DLN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_FZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_XMN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_SHA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_GZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_SIN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_CAN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_CKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_DLC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_FOC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_FOS_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_HGH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_IND_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_NSA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_STO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_TAO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+		<if test="'EDISON_PRC_WUH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..so_Header</if>
+	</sql>
+	<sql id="dbLiner">
+		<if test="'EDISON_PRC_QDO_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_SZN_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_HKG_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_SHA_USA_NVO_GTN' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_TJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_QDO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_HKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_NJG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_SZN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_NBO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_DLN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_FZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_XMN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_SHA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_GZU_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_SIN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_CAN_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_CKG_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_DLC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_FOC_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_FOS_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_HGH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_IND_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_NSA_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_STO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_TAO_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+		<if test="'EDISON_PRC_WUH_NVO' == SYSID">EDISON_PRC_HKG_NVO_TEST..Liner</if>
+	</sql>
+	<select id="findVesvoyforwarderBySONO" resultType="Vesvoyforwarder">
+		SELECT 
+			soh.sono AS SONO,
+			vf.vesvoyno as vesvoyno, 
+			lr.scac_code AS carrierNo,
+			vf.voyage AS voyage  
+		FROM <include refid="dbVesvoyforwarder"/> vf
+		INNER JOIN <include refid="dbSOHeader"/> soh 
+		ON soh.vesvoyno = vf.vesvoyno
+		INNER JOIN  <include refid="dbLiner"/> lr
+		ON vf.linercode = lr.linercode
+		WHERE soh.sono = #{SONO} 
+	</select>
+</mapper>

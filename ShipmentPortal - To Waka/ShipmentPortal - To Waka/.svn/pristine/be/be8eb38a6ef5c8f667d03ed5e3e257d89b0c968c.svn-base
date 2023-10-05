@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	   		http://www.springframework.org/schema/aop
+	   		http://www.springframework.org/schema/aop/spring-aop.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	   		http://www.springframework.org/schema/jee
+	   		http://www.springframework.org/schema/jee/spring-jee.xsd
+        	http://www.springframework.org/schema/lang
+        	http://www.springframework.org/schema/lang/spring-lang.xsd
+        	http://www.springframework.org/schema/tx
+        	http://www.springframework.org/schema/tx/spring-tx.xsd
+        	http://www.springframework.org/schema/util
+        	http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc 
+			http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+	
+	<bean id="HKG-DB-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:conf/db/db-HKHKG.properties</value>
+			</list>
+		</property>
+	    <property name="placeholderPrefix" value="$hkg{" />
+	    <property name="placeholderSuffix" value="}" />
+	</bean>
+	
+	<bean id="hkgDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="$hkg{DriverName}" />
+		<property name="url" value="$hkg{URL};database=$hkg{DataBaseName};instance=$hkg{DataBaseInstance};appName=$hkg{DataBaseAppName};autoReconnect=true;" />
+		<property name="username" value="$hkg{USERNAME}" />
+		<property name="password" value="$hkg{PASSWORD}" />
+		<property name="validationQuery" value="SELECT 1" />
+		<property name="testOnBorrow" value="true" />
+	</bean>
+			
+	<!-- HKG session factory -->
+	<bean id="HKGHKSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+    	<property name="dataSource" ref="hkgDataSource"/>
+    	<!-- <property name="mapperLocations" value="classpath*:com/XXX/mapper/**/*.xml" /> -->
+    	<property name="configLocation" value="classpath:conf/mybatis-Cruise-config.xml"></property>
+  	</bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	    <property name="basePackage" value="com.csfe.edison.business.dao" />
+	    <property name="sqlSessionFactoryBeanName" value="HKGHKSessionFactory" />
+	</bean>
+	<bean id="HKGHKTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="hkgDataSource"/>
+    </bean>
+	<tx:annotation-driven transaction-manager="HKGHKTransactionManager"/>
+	<tx:advice id="HKGHKTxAdvice" transaction-manager="HKGHKTransactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" read-only="false" rollback-for="com.csfe.common.CSFEException" />
+			<tx:method name="*" propagation="REQUIRED" read-only="true" isolation="READ_UNCOMMITTED" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:advisor pointcut-ref="HKGHKServiceOperation" advice-ref="HKGHKTxAdvice" />
+		<aop:aspect id="HKGHKAspect" ref="HKGHKService">
+				<aop:pointcut id="HKGHKServiceOperation" expression="execution(* com.csfe.edison.business.service.EdisonServiceImpl.*(..))" />
+		</aop:aspect>
+	</aop:config>
+	<bean id="HKGHKService" class="com.csfe.edison.business.service.EdisonServiceImpl">
+		<property name="dbName" value="EDISON_PRC_HKG_NVO" />
+	</bean>
+</beans>

@@ -1,0 +1,9 @@
+package com.csfe.edison.business.service;
+
+import com.csfe.common.CSFEException;
+import com.csfe.edison.business.entity.Payment;
+
+public interface UpdatePaymentStatusService {
+    void doPutJson(String url, Payment payment) throws CSFEException;
+    void updatePaymentStatus() throws CSFEException;
+}

@@ -1,0 +1,48 @@
+package com.csfe.etl.business.entity.po;
+
+public class Contacts {
+	private long id;
+	private String OrganizationRole;
+	private String OrganizationCode;
+	private String CompanyName;
+	
+	public Contacts() {
+		super();
+	}
+	
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
+	}
+
+	public String getOrganizationRole() {
+		return OrganizationRole;
+	}
+	public void setOrganizationRole(String organizationRole) {
+		OrganizationRole = organizationRole;
+	}
+	public String getOrganizationCode() {
+		return OrganizationCode;
+	}
+	public void setOrganizationCode(String organizationCode) {
+		OrganizationCode = organizationCode;
+	}
+	
+	public String getCompanyName() {
+		return CompanyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		CompanyName = companyName;
+	}
+
+	@Override
+	public String toString() {
+		return "Contacts [OrganizationRole=" + OrganizationRole + ", OrganizationCode=" + OrganizationCode
+				+ ", CompanyName=" + CompanyName + "]";
+	}
+
+}

@@ -1,0 +1,657 @@
+package com.csfe.edison.business.service;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.Resource;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.csfe.common.CSFEException;
+import com.csfe.common.ConstantsUtil;
+import com.csfe.common.util.StringUtil;
+import com.csfe.edison.business.dao.EdisonDAO;
+import com.csfe.edison.business.dao.EdisonLogDAO;
+import com.csfe.edison.business.entity.EdisonLog;
+import com.csfe.etl.business.entity.Activities;
+import com.csfe.etl.business.entity.BillOfLadingConsignments;
+import com.csfe.etl.business.entity.BillOfLadingContacts;
+import com.csfe.etl.business.entity.BillOfLadingItineraries;
+import com.csfe.etl.business.entity.BillOfLadingShipmentLoads;
+import com.csfe.etl.business.entity.BillOfLadings;
+import com.csfe.etl.business.entity.CargoDetails;
+import com.csfe.etl.business.entity.ConsignmentItineraries;
+import com.csfe.etl.business.entity.Consignments;
+import com.csfe.etl.business.entity.Consolidations;
+import com.csfe.etl.business.entity.ContainerItineraries;
+import com.csfe.etl.business.entity.Containers;
+import com.csfe.etl.business.entity.Itineraries;
+import com.csfe.etl.business.entity.MasterBillContacts;
+import com.csfe.etl.business.entity.MasterBillItineraries;
+import com.csfe.etl.business.entity.MasterBills;
+import com.csfe.etl.business.entity.ShipmentBillOfLadings;
+import com.csfe.etl.business.entity.ShipmentContacts;
+import com.csfe.etl.business.entity.ShipmentLoadDetails;
+import com.csfe.etl.business.entity.ShipmentLoads;
+import com.csfe.etl.business.entity.Shipments;
+import com.csfe.etl.business.entity.Cruise.CruiseOrderContacts;
+import com.csfe.etl.business.entity.Cruise.CruiseOrderWarehouse;
+import com.csfe.etl.business.entity.Cruise.CruiseOrders;
+import com.csfe.etl.business.entity.POFulfillment.POFulfillment;
+import com.csfe.etl.business.entity.POFulfillment.POFulfillmentContacts;
+import com.csfe.etl.business.entity.POFulfillment.POFulfillmentImport;
+import com.csfe.etl.business.entity.master.Organizations;
+import com.csfe.etl.business.entity.po.PurchaseOrders;
+import com.csfe.etl.business.entity.po.Contacts;
+
+@Service
+public class EdisonServiceImpl implements EdisonService{
+	
+	private Logger logger = Logger.getLogger(this.getClass());
+	
+	@Autowired(required = false)
+	private EdisonLogDAO edisonLogDAO;
+	
+	@Autowired(required = false)
+	private EdisonDAO edisonDAO;
+	
+	private String dbName;
+	
+	@Value("${System.ProcessRecord:}")
+	private int processRecord = 0;
+	
+	@Override
+	public String getDbName() {
+		return dbName;
+	}
+
+	public void setDbName(String dbName) {
+		this.dbName = dbName;
+	}
+
+	public EdisonLogDAO getEdisonLogDAO() {
+		return edisonLogDAO;
+	}
+
+	public void setEdisonLogDAO(EdisonLogDAO edisonLogDAO) {
+		this.edisonLogDAO = edisonLogDAO;
+	}
+	
+	public EdisonDAO getEdisonDAO() {
+		return edisonDAO;
+	}
+
+	public void setEdisonDAO(EdisonDAO edisonDAO) {
+		this.edisonDAO = edisonDAO;
+	}
+
+	public int getProcessRecord() {
+		return processRecord;
+	}
+
+	public void setProcessRecord(int processRecord) {
+		this.processRecord = processRecord;
+	}
+
+	@Override
+	public List<EdisonLog> findPendEdisonID(String sysname) throws CSFEException{
+		logger.info("Find Pend EdisonID By ["+ this.getDbName()+"], Sysname["+sysname+"]");
+		return this.getEdisonLogDAO().findPendingEdisonLog(this.getDbName(), sysname);
+	}
+	
+	@Override
+	public List<EdisonLog> findDeleteEdisonID(String sysname) throws CSFEException{
+		logger.info("Find Delete EdisonID By ["+ this.getDbName()+"], Sysname["+sysname+"]");
+		return this.getEdisonLogDAO().findDeleteEdisonLog(this.getDbName(), sysname);
+	}
+
+	@Override
+	public List<EdisonLog> processEdisonLog(List sqllist, String sysname, String creator, String companyCode, String poCompanyCode) throws CSFEException{
+		try {
+			List<String> companyCodelist = new ArrayList<String>();
+			List<String> poCompanyCodelist = new ArrayList<String>();
+			if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+			if(!StringUtil.isNullOrBlank(poCompanyCode)) poCompanyCodelist = Arrays.asList(poCompanyCode.split(","));
+					
+			return this.getEdisonLogDAO().findEdisonLog(this.getDbName(), sysname, companyCodelist, poCompanyCodelist, sqllist);
+		}catch (CSFEException e) {
+			throw new CSFEException("Failure to insert, update, delete EDISONID records "+e);
+		}catch (Exception e) {
+			throw new CSFEException("Failure to insert, update, delete EDISONID records "+e);
+		}
+	}
+	
+	@Override
+	public void saveEdisonLogList(List<EdisonLog> list) throws CSFEException{
+		HashMap<String,Integer> processCount = new LinkedHashMap<String, Integer>();
+		for(EdisonLog log : list) {
+			String insertkey = "inserted_"+log.getCodetype();
+			String updatekey = "updated_"+log.getCodetype();
+			if(!processCount.containsKey(insertkey))processCount.put(insertkey,0);
+			if(!processCount.containsKey(updatekey))processCount.put(updatekey,0);
+			log.setLastupdate(log.getEdisonlastupdate());
+			
+			if(ConstantsUtil.DELETE_KEY.contains(log.getAction()))
+				log.setStatus(ConstantsUtil.DELETE_KEY);
+			else
+				log.setStatus(ConstantsUtil.PENDING_KEY);
+			if(ConstantsUtil.ORGANIZATIONS_TYPE.equals(log.getCodetype())
+				&& !StringUtil.isNullOrBlank(log.getCode2())
+				&& "CENTRALIZED".equals(log.getCode2())
+				&& log.getSeq() > 0) {
+					log.setIsETLtoAzure(true);
+					log.setAzureId(log.getSeq());
+			}else if(ConstantsUtil.PRINCIPALS_TYPE.equals(log.getCodetype())
+					&& log.getSeq() > 0) {
+				log.setIsETLtoAzure(true);
+				log.setAzureId(log.getSeq());
+			}else if(!(log.getId() > 0)){
+				log.setIsETLtoAzure(false);
+			}
+			if(log.getId() > 0) {
+				int count = processCount.containsKey(updatekey)?processCount.get(updatekey):0;
+				if(count < this.getProcessRecord()) {
+					logger.info(((log.getId() > 0)?"Update":"Insert")+" ["+log.getAction()+"]EdisonID, ID["+log.getId()+"], Type["+log.getCodetype()+"], Code["+log.getCode()+"], Code2["+log.getCode2()+"], Code3["+log.getCode3()+"], Seq["+log.getSeq()+"], IsETLtoAzure["+log.getIsETLtoAzure()+"], status["+log.getStatus()+"], lastupdate["+log.getLastupdate()+"]");
+					this.saveEdisonLog(log,true);
+					count++;
+					processCount.put(updatekey, count);
+				}
+			} else {
+				int count = processCount.containsKey(insertkey)?processCount.get(insertkey):0;
+				if(count < this.getProcessRecord()) {
+					logger.info(((log.getId() > 0)?"Update":"Insert")+" ["+log.getAction()+"]EdisonID, ID["+log.getId()+"], Type["+log.getCodetype()+"], Code["+log.getCode()+"], Code2["+log.getCode2()+"], Code3["+log.getCode3()+"], Seq["+log.getSeq()+"], IsETLtoAzure["+log.getIsETLtoAzure()+"], status["+log.getStatus()+"], lastupdate["+log.getLastupdate()+"]");
+					this.saveEdisonLog(log,false);
+					count++;
+					processCount.put(insertkey, count);
+				}
+			}
+			/*
+			if(updateCount < 10 || insertCount < 10)
+				logger.info(((log.getId() > 0)?"Update":"Insert")+" EdisonID, ID["+log.getId()+"], Type["+log.getCodetype()+"], Code["+log.getCode()+"], Code2["+log.getCode2()+"], Code3["+log.getCode3()+"], Seq["+log.getSeq()+"], IsETLtoAzure["+log.getIsETLtoAzure()+"], status["+log.getStatus()+"]");
+			
+			if(log.getId() > 0) {
+				if(updateCount < 10) {
+					this.saveEdisonLog(log,true);
+					updateCount++;
+				}
+			}else{
+				if(insertCount < 10) {
+					this.saveEdisonLog(log,false);
+					insertCount++;
+				}
+			}*/
+		}
+		for(Entry<String, Integer> entry : processCount.entrySet()) {
+			String[] key = entry.getKey().split("_");
+			logger.info("There are "+entry.getValue()+" "+key[1]+" edisonID records have been "+key[0]+".");
+		}
+	}
+	
+	@Override
+	public void saveEdisonLog(EdisonLog log, boolean isUpdate) throws CSFEException{
+		if(isUpdate) {
+			this.getEdisonLogDAO().updateEdisonLog(log);
+		}else{
+			this.getEdisonLogDAO().insertEdisonLog(log);
+		}
+	}
+	
+	@Override
+	public List<Organizations> findOrganizations(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Organizations> resultList = new ArrayList<Organizations>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 900) {
+				resultList.addAll(this.getEdisonDAO().findOrganizations(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findOrganizations(db, sysname, tempList));
+		return resultList;
+	}
+	
+	@Override
+	public List<Shipments> findShipments(String db, String sysname, List<String> list, String poCompanyCode){
+
+		List<String> tempList = new ArrayList<String>();
+		List<Shipments> resultList = new ArrayList<Shipments>();
+		List<String> poCompanyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(poCompanyCode)) poCompanyCodelist = Arrays.asList(poCompanyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findShipments(db, sysname, tempList, poCompanyCodelist));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findShipments(db, sysname, tempList, poCompanyCodelist));
+		return resultList;
+		//return this.getEdisonDAO().findShipments(db, list);
+	}
+	
+	@Override
+	public List<BillOfLadings> findBillOfLadings(String db, String sysname, String companyCode, List<String> list){
+		
+		List<String> tempList = new ArrayList<String>();
+		List<BillOfLadings> resultList = new ArrayList<BillOfLadings>();
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findBillOfLadings(db, sysname, companyCodelist, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findBillOfLadings(db, sysname, companyCodelist, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findBillOfLadings(db, list);
+	}
+	
+	@Override
+	public List<MasterBills> findMasterBills(String db, String sysname, String companyCode, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<MasterBills> resultList = new ArrayList<MasterBills>();
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findMasterBills(db, sysname, companyCodelist, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findMasterBills(db, sysname, companyCodelist, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findMasterBills(db, list);
+	}
+	
+	@Override
+	public List<Containers> findContainers(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Containers> resultList = new ArrayList<Containers>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findContainers(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findContainers(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findContainers(db, list);
+	}
+	
+	@Override
+	public List<Consolidations> findConsolidations(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Consolidations> resultList = new ArrayList<Consolidations>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findConsolidations(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findConsolidations(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findConsolidations(db, list);
+	}
+	
+	@Override
+	public List<Consignments> findConsignments(String db, String sysname, String companyCode, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Consignments> resultList = new ArrayList<Consignments>();
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findConsignments(db, sysname, companyCodelist, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findConsignments(db, sysname, companyCodelist, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findConsignments(db, list);
+	}
+	
+	@Override
+	public List<CargoDetails> findCargoDetails(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<CargoDetails> resultList = new ArrayList<CargoDetails>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findCargoDetails(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findCargoDetails(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findCargoDetails(db, list);
+	}
+	
+	@Override
+	public List<ShipmentLoads> findShipmentLoads(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<ShipmentLoads> resultList = new ArrayList<ShipmentLoads>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 900) {
+				resultList.addAll(this.getEdisonDAO().findShipmentLoads(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findShipmentLoads(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findShipmentLoads(db, list);
+	}
+	
+	@Override
+	public List<ShipmentLoadDetails> findShipmentLoadDetails(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<ShipmentLoadDetails> resultList = new ArrayList<ShipmentLoadDetails>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 900) {
+				resultList.addAll(this.getEdisonDAO().findShipmentLoadDetails(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findShipmentLoadDetails(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findShipmentLoadDetails(db, list);
+	}
+	
+	@Override
+	public List<BillOfLadingContacts> findBillOfLadingContacts(String db, String sysname, String companyCode, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<BillOfLadingContacts> resultList = new ArrayList<BillOfLadingContacts>();
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 450) {
+				resultList.addAll(this.getEdisonDAO().findBillOfLadingContacts(db, sysname, companyCodelist, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findBillOfLadingContacts(db, sysname, companyCodelist, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findBillOfLadingContacts(db, list);
+	}
+	
+	@Override
+	public List<MasterBillContacts> findMasterBillContacts(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<MasterBillContacts> resultList = new ArrayList<MasterBillContacts>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findMasterBillContacts(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findMasterBillContacts(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findMasterBillContacts(db, list);
+	}
+	
+	@Override
+	public List<ShipmentContacts> findShipmentContacts(String db, String sysname, String companyCode, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<ShipmentContacts> resultList = new ArrayList<ShipmentContacts>();
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 450) {
+				resultList.addAll(this.getEdisonDAO().findShipmentContacts(db, sysname, companyCodelist, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findShipmentContacts(db, sysname, companyCodelist, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findShipmentContacts(db, list);
+	}
+	
+	@Override
+	public List<Itineraries> findItineraries(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Itineraries> resultList = new ArrayList<Itineraries>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 1800) {
+				resultList.addAll(this.getEdisonDAO().findItineraries(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findItineraries(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findItineraries(db, list);
+	}
+
+	@Override
+	public List<BillOfLadingConsignments> findBillOfLadingConsignments(String db, String sysname, String companyCode, String sysdate){
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		return this.getEdisonDAO().findBillOfLadingConsignments(db, sysname, companyCodelist, sysdate);
+	}
+	
+	@Override
+	public List<BillOfLadingItineraries> findBillOfLadingItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findBillOfLadingItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<ShipmentBillOfLadings> findShipmentBillOfLadings(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findShipmentBillOfLadings(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<BillOfLadingShipmentLoads> findBillOfLadingShipmentLoads(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findBillOfLadingShipmentLoads(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<ConsignmentItineraries> findConsignmentItineraries(String db, String sysname, String companyCode, String sysdate){
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		return this.getEdisonDAO().findConsignmentItineraries(db, sysname, companyCodelist, sysdate);
+	}
+	
+	@Override
+	public List<ContainerItineraries> findContainerItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findContainerItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<MasterBillItineraries> findMasterBillItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findMasterBillItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<Activities> findActivities(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Activities> resultList = new ArrayList<Activities>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 120) {
+				resultList.addAll(this.getEdisonDAO().findActivities(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findActivities(db, sysname, tempList));
+		return resultList;
+		//return this.getEdisonDAO().findActivities(db, list);
+	}
+	
+	@Override
+	public List<BillOfLadingConsignments> findDeleteBillOfLadingConsignments(String db, String sysname, String companyCode, String sysdate){
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		return this.getEdisonDAO().findDeleteBillOfLadingConsignments(db, sysname, companyCodelist, sysdate);
+	}
+	
+	@Override
+	public List<BillOfLadingItineraries> findDeleteBillOfLadingItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findDeleteBillOfLadingItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<ShipmentBillOfLadings> findDeleteShipmentBillOfLadings(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findDeleteShipmentBillOfLadings(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<BillOfLadingShipmentLoads> findDeleteBillOfLadingShipmentLoads(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findDeleteBillOfLadingShipmentLoads(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<ConsignmentItineraries> findDeleteConsignmentItineraries(String db, String sysname, String companyCode, String sysdate){
+		List<String> companyCodelist = new ArrayList<String>();
+		if(!StringUtil.isNullOrBlank(companyCode)) companyCodelist = Arrays.asList(companyCode.split(","));
+		return this.getEdisonDAO().findDeleteConsignmentItineraries(db, sysname, companyCodelist, sysdate);
+	}
+	
+	@Override
+	public List<ContainerItineraries> findDeleteContainerItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findDeleteContainerItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<MasterBillItineraries> findDeleteMasterBillItineraries(String db, String sysname, String sysdate){
+		return this.getEdisonDAO().findDeleteMasterBillItineraries(db, sysname, sysdate);
+	}
+	
+	@Override
+	public List<PurchaseOrders> findPurchaseOrders(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<PurchaseOrders> resultList = new ArrayList<PurchaseOrders>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 900) {
+				resultList.addAll(this.getEdisonDAO().findPurchaseOrders(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findPurchaseOrders(db, sysname, tempList));
+		return resultList;
+	}
+	
+	@Override
+	public List<Contacts> findContacts(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<Contacts> resultList = new ArrayList<Contacts>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 600) {
+				resultList.addAll(this.getEdisonDAO().findContacts(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findContacts(db, sysname, tempList));
+		return resultList;
+	}
+	
+	@Override
+	public List<POFulfillment> findPOFulfillment(String db, String sysname, String sono, String seq){
+		return this.getEdisonDAO().findPOFulfillment(db, sysname, sono, seq);
+	}
+	
+	@Override
+	public EdisonLog findEdisonIDBySONO(String db, String sysname, String sono, String soseq, String type) throws CSFEException{
+		return this.getEdisonLogDAO().findEdisonIDBySONO(db, sysname, sono, soseq, type);
+	}
+	
+	@Override
+	public List<CruiseOrders> findCruiseOrders(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<CruiseOrders> resultList = new ArrayList<CruiseOrders>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 900) {
+				resultList.addAll(this.getEdisonDAO().findCruiseOrders(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findCruiseOrders(db, sysname, tempList));
+		return resultList;
+	}
+	
+	@Override
+	public List<CruiseOrderContacts> findCruiseOrderContacts(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<CruiseOrderContacts> resultList = new ArrayList<CruiseOrderContacts>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 600) {
+				resultList.addAll(this.getEdisonDAO().findCruiseOrderContacts(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findCruiseOrderContacts(db, sysname, tempList));
+		return resultList;
+	}
+	
+	@Override
+	public List<CruiseOrderWarehouse> findCruiseOrderWarehouse(String db, String sysname, List<String> list){
+		List<String> tempList = new ArrayList<String>();
+		List<CruiseOrderWarehouse> resultList = new ArrayList<CruiseOrderWarehouse>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 600) {
+				resultList.addAll(this.getEdisonDAO().findCruiseOrderWarehouse(db, sysname, tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty())	resultList.addAll(this.getEdisonDAO().findCruiseOrderWarehouse(db, sysname, tempList));
+		return resultList;
+	}
+
+	@Override
+	public List<POFulfillmentImport> findPOFulfillmentImport(String db, String sysname,List<String> list) {
+			List<String> tempList = new ArrayList<String>();
+			List<POFulfillmentImport> resultList = new ArrayList<POFulfillmentImport>();
+			for(String id : list) {
+				tempList.add(id);
+				if(tempList.size() > 600) {
+					resultList.addAll(this.getEdisonDAO().findPOFulfillmentImport(db, sysname,tempList));
+					tempList = new ArrayList<String>();
+				}
+			}
+			if(!tempList.isEmpty()) resultList.addAll(this.getEdisonDAO().findPOFulfillmentImport(db, sysname,tempList));
+			return resultList;
+	}
+
+	@Override
+	public List<POFulfillmentContacts> findPOFulfillmentContacts(String db, String sysname, List<String> list) {
+		List<String> tempList = new ArrayList<String>();
+		List<POFulfillmentContacts> resultList = new ArrayList<POFulfillmentContacts>();
+		for(String id : list) {
+			tempList.add(id);
+			if(tempList.size() > 600) {
+				resultList.addAll(this.getEdisonDAO().findPOFulfillmentContacts(db, sysname,tempList));
+				tempList = new ArrayList<String>();
+			}
+		}
+		if(!tempList.isEmpty()) resultList.addAll(this.getEdisonDAO().findPOFulfillmentContacts(db, sysname,tempList));
+		return resultList;
+	}
+
+ 
+	 
+
+}

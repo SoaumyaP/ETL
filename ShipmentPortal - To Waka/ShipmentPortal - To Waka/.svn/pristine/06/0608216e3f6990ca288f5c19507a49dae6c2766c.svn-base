@@ -1,0 +1,164 @@
+package com.csfe.etl.business.entity.POFulfillment;
+
+public class CustomerPO {
+	
+	public String CustomerPONumber;
+	public String ProductCode;
+	public String FulfillmentUnitQty;
+	public String UnitUOM;
+	public String PackageUOM;
+	public String Commodity;
+	public String HsCode;
+	public String CountryCodeOfOrigin;
+	public String BookedPackage;
+	public String GrossWeight;
+	public String NetWeight;
+	public String Volume;
+	public String ChineseDescription;
+	public String ShippingMarks;
+	public String ColourCode;
+	public String Height;
+	public String Length;
+	public String Width;
+	public String SeasonCode;
+	public String Size;
+	public String StyleNo;
+	public String getCustomerPONumber() {
+		return CustomerPONumber;
+	}
+	public void setCustomerPONumber(String customerPONumber) {
+		CustomerPONumber = customerPONumber;
+	}
+	public String getProductCode() {
+		return ProductCode;
+	}
+	public void setProductCode(String productCode) {
+		ProductCode = productCode;
+	}
+	public String getFulfillmentUnitQty() {
+		return FulfillmentUnitQty;
+	}
+	public void setFulfillmentUnitQty(String fulfillmentUnitQty) {
+		FulfillmentUnitQty = fulfillmentUnitQty;
+	}
+	public String getUnitUOM() {
+		return UnitUOM;
+	}
+	public void setUnitUOM(String unitUOM) {
+		UnitUOM = unitUOM;
+	}
+	public String getPackageUOM() {
+		return PackageUOM;
+	}
+	public void setPackageUOM(String packageUOM) {
+		PackageUOM = packageUOM;
+	}
+	public String getCommodity() {
+		return Commodity;
+	}
+	public void setCommodity(String commodity) {
+		Commodity = commodity;
+	}
+	public String getHsCode() {
+		return HsCode;
+	}
+	public void setHsCode(String hsCode) {
+		HsCode = hsCode;
+	}
+	public String getCountryCodeOfOrigin() {
+		return CountryCodeOfOrigin;
+	}
+	public void setCountryCodeOfOrigin(String countryCodeOfOrigin) {
+		CountryCodeOfOrigin = countryCodeOfOrigin;
+	}
+	public String getBookedPackage() {
+		return BookedPackage;
+	}
+	public void setBookedPackage(String bookedPackage) {
+		BookedPackage = bookedPackage;
+	}
+	public String getGrossWeight() {
+		return GrossWeight;
+	}
+	public void setGrossWeight(String grossWeight) {
+		GrossWeight = grossWeight;
+	}
+	public String getNetWeight() {
+		return NetWeight;
+	}
+	public void setNetWeight(String netWeight) {
+		NetWeight = netWeight;
+	}
+	public String getVolume() {
+		return Volume;
+	}
+	public void setVolume(String volume) {
+		Volume = volume;
+	}
+	public String getChineseDescription() {
+		return ChineseDescription;
+	}
+	public void setChineseDescription(String chineseDescription) {
+		ChineseDescription = chineseDescription;
+	}
+	public String getShippingMarks() {
+		return ShippingMarks;
+	}
+	public void setShippingMarks(String shippingMarks) {
+		ShippingMarks = shippingMarks;
+	}
+	public String getColourCode() {
+		return ColourCode;
+	}
+	public void setColourCode(String colourCode) {
+		ColourCode = colourCode;
+	}
+	public String getHeight() {
+		return Height;
+	}
+	public void setHeight(String height) {
+		Height = height;
+	}
+	public String getLength() {
+		return Length;
+	}
+	public void setLength(String length) {
+		Length = length;
+	}
+	public String getWidth() {
+		return Width;
+	}
+	public void setWidth(String width) {
+		Width = width;
+	}
+	public String getSeasonCode() {
+		return SeasonCode;
+	}
+	public void setSeasonCode(String seasonCode) {
+		SeasonCode = seasonCode;
+	}
+	public String getSize() {
+		return Size;
+	}
+	public void setSize(String size) {
+		Size = size;
+	}
+	public String getStyleNo() {
+		return StyleNo;
+	}
+	public void setStyleNo(String styleNo) {
+		StyleNo = styleNo;
+	}
+	@Override
+	public String toString() {
+		return "CustomerPO [CustomerPONumber=" + CustomerPONumber + ", ProductCode=" + ProductCode
+				+ ", FulfillmentUnitQty=" + FulfillmentUnitQty + ", UnitUOM=" + UnitUOM + ", PackageUOM=" + PackageUOM
+				+ ", Commodity=" + Commodity + ", HsCode=" + HsCode + ", CountryCodeOfOrigin=" + CountryCodeOfOrigin
+				+ ", BookedPackage=" + BookedPackage + ", GrossWeight=" + GrossWeight + ", NetWeight=" + NetWeight
+				+ ", Volume=" + Volume + ", ChineseDescription=" + ChineseDescription + ", ShippingMarks="
+				+ ShippingMarks + ", ColourCode=" + ColourCode + ", Height=" + Height + ", Length=" + Length
+				+ ", Width=" + Width + ", SeasonCode=" + SeasonCode + ", Size=" + Size + ", StyleNo=" + StyleNo + "]";
+	}
+	
+	
+}

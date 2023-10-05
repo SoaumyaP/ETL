@@ -1,0 +1,159 @@
+package com.csfe.edison.business.service;
+
+import com.csfe.common.CSFEException;
+import com.csfe.edison.business.dao.PaymentDAO;
+import com.csfe.edison.business.entity.Payment;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.json.JSONObject;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.*;
+
+
+public class UpdatePaymentStatusServiceImpl implements UpdatePaymentStatusService {
+    @Autowired(required = false)
+    private PaymentDAO paymentDAO;
+
+    @Value("${API.Endpoints.Url:}")
+    public String url;
+
+    @Value("${API.Identity.Url:}")
+    private String apiUrl;
+
+    @Value("${Grant.Type:}")
+    private String grantType;
+
+    @Value("${Basic.Authorization:}")
+    private String basicAuth;
+
+    private String dbName;
+
+    private static final Map<String,Object> errMsg = new HashMap<>();
+
+    public PaymentDAO getPaymentDAO() {
+        return paymentDAO;
+    }
+
+    public String getDbName() {
+        return dbName;
+    }
+
+    public String getBasicAuth() {
+        return basicAuth;
+    }
+
+    public String getGrantType() {
+        return grantType;
+    }
+
+    public String getApiUrl() {
+        return apiUrl;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setDbName(String dbName) {
+        this.dbName = dbName;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    private final Logger logger = Logger.getLogger(this.getClass());
+
+    @Override
+    public void updatePaymentStatus() throws CSFEException {
+        int count = 0;
+        Calendar localCalendar = Calendar.getInstance(TimeZone.getDefault());
+        String today = getDate(localCalendar);
+        localCalendar.add(Calendar.DATE, -60);
+        String fromDay = getDate(localCalendar);
+
+        logger.info("[Agent Invoice] Update Payment Status from [" + fromDay + "] to [" + today + "]");
+        List<Payment> list = this.getPaymentDAO().findInvoicePaymentStatus(this.getDbName());
+
+        if(list != null && !list.isEmpty()) {
+            for(Payment payment : list) {
+                logger.info("Start process "+ (++count) + " of "+list.size()+". InvoiceNo: "+payment.getInvoiceNo());
+                doPutJson(this.getUrl(), payment);
+            }
+        } else {
+            logger.info("Cannot find any insert or update edisonID records.");
+        }
+        printErrMsg(errMsg);
+    }
+
+    public void doPutJson(String url, Payment payment) {
+
+        String invoiceNo = payment.getInvoiceNo();
+        int paymentStatus = payment.getPaymentStatus();
+        Date paymentDate = payment.getPaymentDate();
+        Date updatedDate = payment.getUpdatedDate();
+        String updatedBy = payment.getUpdatedBy();
+        HttpResponse<JsonNode> response;
+        url+="/api/invoices/updatepayment";
+        try{
+            JSONObject token = doPostToken(this.getApiUrl());
+            JSONObject jsonObject = new JSONObject();
+
+            jsonObject.put("InvoiceNo", invoiceNo)
+                    .put("PaymentStatus", paymentStatus)
+                    .put("PaymentDate", paymentDate)
+                    .put("UpdatedDate", updatedDate)
+                    .put("UpdatedBy", updatedBy);
+//不符合Json规则放入列表
+            response = Unirest.post(url)//请求的URL
+                    .header("Authorization","Bearer "+token.get("access_token"))
+                    .header("content-type", "application/json") //请求主体的数据类型
+                    .body(jsonObject)
+                    .asJson();
+
+        } catch (UnsupportedCharsetException e) {
+            logger.error("Update Invoices Payment API request error");
+            throw new RuntimeException(e);
+        }
+        if(response == null) {//调用API失败要拼进去
+            errMsg.put(invoiceNo," Update request failed");
+        } else if (response.getStatus()!=200)
+            errMsg.put(invoiceNo,response.getStatus());
+    }
+
+    public JSONObject doPostToken(String url){
+        try{
+            url+="/connect/token";
+            HttpResponse<JsonNode> response = Unirest.post(url)
+                    .field("grant_type", this.getGrantType())
+                    .header("Content_Type","application/x-www-form-urlencoded")
+                    .header("Authorization","Basic "+this.getBasicAuth())
+                    .asJson();
+            if (response.getStatus()==200){
+                return response.getBody().getObject();
+            } else {
+                logger.info("AccessToken acquisition failure");
+                throw new CSFEException(String.valueOf(response.getStatus()));
+            }
+        } catch (Exception e) {
+            logger.error("AccessToken API request error");
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String getDate(Calendar cal) {//返回日历参数
+        return "" + cal.get(Calendar.YEAR) + "-" + (cal.get(Calendar.MONTH) + 1) + "-" + cal.get(Calendar.DATE);
+    }
+
+    public void printErrMsg(Map<String,Object> errMsg) {
+        for (Map.Entry<String, Object> entry : errMsg.entrySet()) {
+            logger.info(entry.getKey()+entry.getValue());
+        }
+    }
+
+}

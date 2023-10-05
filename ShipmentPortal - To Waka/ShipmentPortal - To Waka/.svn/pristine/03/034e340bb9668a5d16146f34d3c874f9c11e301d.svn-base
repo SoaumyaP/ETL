@@ -1,0 +1,3905 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.edison.business.dao.EdisonDAO">
+
+	<sql id="dbName">e_cargo_20101117.dbo.edisonetlid</sql>
+	<sql id="azureDB">[AZURE New Staging DB].[SP-GlobalIdSchemaDB]</sql>
+	<sql id="azureMasterDB">[azure sql masterdb].[masterdata-testdb]</sql>
+	<sql id="cvsDB">edison_prc_cvs_test</sql>
+	<sql id="containerStatusLog">CSHKG_SHIPMENT_EVENT_TEST.dbo.ContainerStatusLog</sql>
+	<sql id="containerStatusEventLog">CSHKG_SHIPMENT_EVENT_TEST.dbo.ContainerStatusEventLog</sql>
+	<sql id="polist"><foreach item="item" index="index" collection="pocompanyCode" open="(" separator="," close=")">#{item}</foreach></sql>
+	<sql id="list"><foreach item="item" index="index" collection="list" open="(" separator="," close=")">#{item}</foreach></sql>
+	<!-- Retrieve data for 1 or 2 days - configurable for SP2-14 - SP2-20 -->
+	<sql id="lastUpdatedDay">DATEADD(DD, DATEDIFF(DD, 0, #{sysdate}), -2)</sql>
+	<sql id="companyCodelist"><foreach item="item" index="index" collection="companyCode" open="(" separator="," close=")">#{item}</foreach></sql>
+	<sql id="PRINCIPAL_CODE">'BMIN0001'</sql>
+	<sql id="CONSIGNEE_CODE">'BMIN0001'</sql>
+
+	<select id="findOrganizations" resultType="Organizations">
+		SELECT 
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       CASE WHEN ISNULL(ii.code2,'') = 'CENTRALIZED' THEN RTRIM(cch.companycode) ELSE RTRIM(ISNULL(map.OurCode,'')) + '|' + RTRIM(cch.companycode) END AS code,
+		       RTRIM(ISNULL(cch.companyname, '')) AS name,
+		       RTRIM(ISNULL(ccd.email, '')) AS contactemail,
+		       RTRIM(ISNULL(ccd.contact, '')) AS contactname,
+		       RTRIM(ccd.telno) AS contactnumber,
+		       ISNULL(CONVERT(NVARCHAR(500), RTRIM(ISNULL(ccd.address1,'')) + '\n' + RTRIM(ISNULL(ccd.address2,'')) + '\n' + RTRIM(ISNULL(ccd.address3,'')) + '\n' + RTRIM(ISNULL(ccd.address4,''))), '') AS [address],
+		       0 AS edisoninstanceid,
+		       ii.azureid AS edisoncompanycodeid,
+		       8 AS locationid,
+		       2 AS organizationtype,
+		       '' AS parentid,
+		       1 AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK) 
+		INNER JOIN dbo.companyheader cch (NOLOCK)
+			ON ii.codetype = 'ORGANIZATIONS'
+			AND ii.sysname = 'MASTERDATA'
+			AND ii.dbname = #{db}
+			AND ii.code = cch.companycode
+		INNER JOIN dbo.companydetail ccd (NOLOCK) 
+			ON cch.companycode = ccd.companycode
+			AND ccd.seq = 1
+			--AND RTRIM(ISNULL(ccd.email, '')) <![CDATA[ <> ]]> ''
+			--AND RTRIM(ISNULL(ccd.contact, '')) <![CDATA[ <> ]]> ''
+			--AND ISNULL(CONVERT(NVARCHAR(500), RTRIM(ISNULL(ccd.address1,'')) + '\n' + RTRIM(ISNULL(ccd.address2,'')) + '\n' + RTRIM(ISNULL(ccd.address3,'')) + '\n' + RTRIM(ISNULL(ccd.address4,''))), '') <![CDATA[ <> ]]> ''
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap map (nolock)
+			ON map.EDIName = 'SHIPMENT_PORTAL'
+			AND map.codetype = 'CMPYPREFIX'
+			AND map.Status = 'Y'
+			AND map.PartnerCode = #{db}
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+			ON popmap.EDIName = 'SHIPMENT_PORTAL'
+			AND popmap.codetype = 'POPARTYPREFIX'
+			AND popmap.Status = 'Y'
+			AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') <![CDATA[ <> ]]> 'Y'
+		AND NOT EXISTS (
+			SELECT 1 FROM <include refid="dbName"/> olog (NOLOCK)
+				WHERE olog.codetype = 'ORGANIZATIONS'
+				AND ii.sysname = 'MASTERDATA'
+				AND olog.IsETLtoAzure = 'Y'
+				AND ii.code = olog.code
+				AND ISNULL(olog.code2,'') = 'CENTRALIZED'
+				AND ISNULL(ii.code2,'') = 'CENTRALIZED'
+				AND ISNULL(ii.IsETLtoAzure,'') <![CDATA[ <> ]]> 'Y'
+				AND ii.id <![CDATA[ <> ]]> olog.id
+		)
+		AND ii.id in <include refid="list"/>
+		UNION ALL
+		SELECT 
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       ii.code AS code,
+		       ii.code3 AS name,
+		       NULL AS contactemail,
+		       NULL AS contactname,
+		       NULL AS contactnumber,
+		       NULL AS [address],
+		       0 AS edisoninstanceid,
+		       dd.Id AS edisoncompanycodeid,
+		       8 AS locationid,
+		       4 AS organizationtype,
+		       '' AS parentid,
+		       1 AS [status]
+		FROM <include refid="dbName"/> AS ii(NOLOCK)
+		LEFT JOIN <include refid="dbName"/> AS dd(NOLOCK) ON ii.code2 = dd.code
+		                                        AND dd.codetype = 'ORGANIZATIONS'
+		                                        AND ii.sysname = dd.sysname
+		                                        AND ii.dbname = dd.dbname
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+			ON popmap.EDIName = 'SHIPMENT_PORTAL'
+			AND popmap.codetype = 'POPARTYPREFIX'
+			AND popmap.Status = 'Y'
+			AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') <![CDATA[ <> ]]> 'Y'
+		AND NOT EXISTS (
+			SELECT 1 FROM <include refid="dbName"/> olog (NOLOCK)
+				WHERE olog.codetype = 'PRINCIPALS'
+				AND olog.sysname = 'MASTERDATA'
+				AND olog.IsETLtoAzure = 'Y'
+				AND ii.code = olog.code
+				AND ISNULL(ii.IsETLtoAzure,'') <![CDATA[ <> ]]> 'Y'
+				AND ii.id <![CDATA[ <> ]]> olog.id
+		)
+		AND ii.codetype = 'PRINCIPALS'
+		AND olog.sysname = 'MASTERDATA'
+		AND ii.dbname = #{db}
+		AND ii.id in <include refid="list"/>
+		UNION ALL
+		--PO Parties
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       RTRIM(ISNULL(pop.PartyCode, '')) AS code,
+		       RTRIM(ISNULL(pop.PartyName, '')) AS name,
+		       RTRIM(ISNULL(pop.Email, '')) AS contactemail,
+		       RTRIM(ISNULL(pop.ContactPerson, '')) AS contactname,
+		       RTRIM(ISNULL(pop.TelNo, '')) AS contactnumber,
+		       ISNULL(CONVERT(NVARCHAR(500), RTRIM(ISNULL(pop.AddressLine1,'')) + '\n' + RTRIM(ISNULL(pop.AddressLine2,'')) + '\n' + RTRIM(ISNULL(pop.AddressLine3,'')) + '\n' + RTRIM(ISNULL(pop.AddressLine4,''))), '') AS [address],
+		       0 AS edisoninstanceid,
+		       ii.azureid AS edisoncompanycodeid,
+		       8 AS locationid,
+		       2 AS organizationtype,
+		       '' AS parentid,
+		       1 AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK) 
+		INNER JOIN <include refid="cvsDB"/>.dbo.POParty pop (NOLOCK)
+			ON ii.codetype = 'ORGANIZATIONS'
+			AND olog.sysname = 'MASTERDATA'
+			AND ii.dbname = #{db}
+			AND ii.seq = 1
+			AND pop.CompanyCode = ii.code3
+			AND pop.CompanyType = ii.code2
+			AND pop.PartyCode = ii.code
+			AND pop.PartyType IN ('V','S','P')
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+			ON popmap.EDIName = 'SHIPMENT_PORTAL'
+			AND popmap.codetype = 'POPARTYPREFIX'
+			AND popmap.Status = 'Y'
+			AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') = 'Y'
+		AND ii.id in <include refid="list"/>
+		UNION ALL
+		--PO supplier
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       RTRIM(ISNULL(cvpo.SupplierCode, '')) AS code,
+		       RTRIM(ISNULL(cvpo.SupplierName, '')) AS name,
+		       NULL AS contactemail,
+		       NULL AS contactname,
+		       NULL AS contactnumber,
+		       NULL AS [address],
+			   0 AS edisoninstanceid,
+		       ii.azureid AS edisoncompanycodeid,
+		       8 AS locationid,
+		       2 AS organizationtype,
+		       '' AS parentid,
+		       1 AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK) 
+		INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+			ON ii.codetype = 'ORGANIZATIONS'
+			AND olog.sysname = 'MASTERDATA'
+			AND ii.dbname = #{db}
+			AND ii.seq = 2
+			AND cvpo.SupplierCode = ii.code
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+			ON popmap.EDIName = 'SHIPMENT_PORTAL'
+			AND popmap.codetype = 'POPARTYPREFIX'
+			AND popmap.Status = 'Y'
+			AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') = 'Y'
+		AND ii.id in <include refid="list"/>
+	</select>
+	
+	<select id="findShipments" resultType="Shipments">
+		SELECT --DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       CASE WHEN soh.so_seq > 1 THEN RTRIM(soh.sono) + '-' + CONVERT(VARCHAR(10), soh.so_seq) ELSE RTRIM(soh.sono) END AS shipmentno,
+			   RTRIM(soh.ConsigneeCode) AS BuyerCode,
+		       SUBSTRING(
+		       (
+		         SELECT ',' + RTRIM(soix.po_no) AS [text()]
+		         FROM dbo.so_item AS soix(NOLOCK)
+		         WHERE soh.sono = soix.sono
+		               AND soh.so_seq = soix.so_seq
+		         GROUP BY soix.po_no
+		         FOR XML PATH('')
+		       ), 2, 1000) AS [customerreferenceno],
+		       RTRIM(ISNULL(soh.agentreference, '')) AS AgentReferenceNo,
+			   RTRIM(ISNULL(soh.shipperrefno, '')) AS ShipperReferenceNo,
+		       NULL AS BookingReferenceNo,
+		       CASE WHEN ii.sysname IN ('CRUISE') THEN 'CRUISE' ELSE 'FREIGHT' END AS OrderType,
+			   RTRIM(soh.CarrierContactNO) AS CarrierContractNO,
+		       CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+		       ISNULL(soh.cargoreadydate, '') AS cargoreadydate,
+		       soh.bookingdate AS bookingdate,
+		       '' AS shipmenttype,
+		       CASE WHEN ISNULL(porcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(porcity.cityname)) ELSE RTRIM(ISNULL(fflcity.cityname, '')) END AS shipfrom,
+		       ISNULL(ff.etd_date, '') AS shipfrometddate,
+		       CASE WHEN ISNULL(podcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(podcity.cityname))
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff3dcity.cityname)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff2dcity.cityname)
+				ELSE RTRIM(ffdcity.cityname) END AS shipto,
+		       (SELECT MAX(v) FROM (VALUES (soh.eta_finaldate), (ff.eta_datedport), (ff2.eta_datedport), (ff3.eta_datedport)) AS value(v)) AS shiptoetadate,
+		       RTRIM(soh.movement) AS movement,
+		       ISNULL(CONVERT(DECIMAL(18, 4), soii.qty), 0) AS totalpackage,
+		       RTRIM(soii.unitcode) AS totalpackageuom,
+		       ISNULL(CONVERT(DECIMAL(18, 4), soii.piece), 0) AS totalunit,
+		       'Each' AS totalunituom,
+		       ISNULL(CONVERT(DECIMAL(18, 4), soii.kgs), 0) AS totalgrossweight,
+		       'KGS' AS totalgrossweightuom,
+		       ISNULL(CONVERT(DECIMAL(18, 4), soii.net_kgs), 0) AS totalnetweight,
+		       'KGS' AS totalnetweightuom,
+		       ISNULL(CONVERT(DECIMAL(18, 4), soii.cbm), 0) AS totalvolume,
+		       'CBM' AS totalvolumeuom,
+		       CASE ISNULL(soh.servicetype, '')
+		         WHEN 'PP' THEN 'Port-to-Port'
+		         WHEN 'PD' THEN 'Port-to-Door'
+		         WHEN 'DD' THEN 'Door-to-Door'
+		         WHEN 'DP' THEN 'Door-to-Port'
+		         ELSE RTRIM(ISNULL(soh.servicetype, ''))
+		       END AS [servicetype],
+		       RTRIM(soh.incotermscode) AS Incoterm,
+		       CASE soh.so_status 
+			   WHEN 'A' THEN 'Active'
+			   WHEN 'C' THEN 'Inactive'
+			   WHEN 'P' THEN 'Active'
+			   END AS status,
+		       CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK) 
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'SHIPMENTS'
+				AND ii.code = soh.sono
+		        AND ii.seq = soh.so_seq
+			LEFT JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			LEFT JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			LEFT JOIN dbo.city ffdcity (NOLOCK)
+				ON ff.dportcode = ffdcity.citycode
+			LEFT JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			LEFT JOIN dbo.country ffdcty (NOLOCK)
+				ON ffdcity.countrycode = ffdcty.countrycode
+			LEFT JOIN dbo.vesvoyforwarder ff2 (NOLOCK) 
+				ON soh.vesvoyno_leg = ff2.vesvoyno
+			LEFT JOIN dbo.city ff2dcity (NOLOCK)
+				ON ff2.dportcode = ff2dcity.citycode
+			LEFT JOIN dbo.country ff2dcty (NOLOCK)
+				ON ff2dcity.countrycode = ff2dcty.countrycode
+			LEFT JOIN dbo.vesvoyforwarder ff3 (NOLOCK) 
+				ON soh.vesvoyno_3rd = ff3.vesvoyno
+			LEFT JOIN dbo.city ff3dcity (NOLOCK)
+				ON ff3.dportcode = ff3dcity.citycode
+			LEFT JOIN dbo.country ff3dcty (NOLOCK)
+				ON ff3dcity.countrycode = ff3dcty.countrycode
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.por_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.por_name = RTRIM(tcity.cityname))
+			) AS porcity
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.pod_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.pod_name = RTRIM(tcity.cityname))
+			) AS podcity
+			LEFT JOIN
+		     (
+		       SELECT soi.sono,
+		              soi.so_seq,
+		              SUM(soi.qty) AS qty,
+		              MAX(ISNULL(unitmap.PartnerCode, ISNULL(uu.unitname, soi.unitcode))) AS unitcode,
+		              SUM(soi.piece) AS piece,
+		              SUM(soi.kgs) AS kgs,
+		              SUM(soi.net_kgs) AS net_kgs,
+		              SUM(soi.cbm) AS cbm
+		       FROM dbo.so_item AS soi(NOLOCK)
+		       LEFT JOIN dbo.unit AS uu(NOLOCK) ON ISNULL(uu.unitcode, '') = ISNULL(soi.unitcode, '')
+			   LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap unitmap(NOLOCK)
+				ON unitmap.EDIName = 'SHIPMENT_PORTAL'
+				AND unitmap.codetype = 'PACKAGEUOM'
+				AND unitmap.Status = 'Y'
+				AND soi.unitcode = unitmap.OurCode
+		       GROUP BY soi.sono,
+		                soi.so_seq
+		     ) AS soii ON soh.sono = soii.sono
+		                  AND soh.so_seq = soii.so_seq
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.codetype = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_SHIPMENTS_SHIPPERCODE_ACTSHIPPERCODE'
+				AND mapp.PartnerCode = ii.sysname
+		WHERE ii.id IN <include refid="list"/>
+		AND soh.so_status in ('A','P','C')
+		AND ((mapp.Status IS NULL) OR (mapp.Status IS NOT NULL AND soh.shippercode = soh.act_shippercode))
+	</select> 
+	
+	<select id="findBillOfLadings" resultType="BillOfLadings">
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       RTRIM(hbl.xbl_no) AS billofladingno,
+		       ISNULL(aa.azureid, 0) AS executionagentid,
+		       RTRIM(hblt.description) AS billofladingtype,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(ll3.linername) 
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(ll2.linername) 
+				ELSE RTRIM(ll.linername) END AS maincarrier,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(vv3.vesselnamelong)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(vv2.vesselnamelong)
+				ELSE RTRIM(vv.vesselnamelong) END AS mainvessel,
+		       ISNULL(soii.kgs, 0) AS totalgrossweight,
+		       'KGS' AS totalgrossweightuom,
+		       ISNULL(soii.net_kgs, 0) AS totalnetweight,
+		       'KGS' AS totalnetweightuom,
+		       ISNULL(soii.qty, 0) AS totalpackage,
+		       RTRIM(soii.unitcode) AS totalpackageuom,
+		       ISNULL(soii.cbm, 0) AS totalvolume,
+		       'CBM' AS totalvolumeuom,
+		       RTRIM(soh.jobno) AS jobnumber,
+		       ISNULL(soh.issuedate, '') AS issuedate,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv3.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv3.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv2.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv2.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+			   END AS modeoftransport,
+		       CASE WHEN ISNULL(porcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(porcity.cityname)) ELSE RTRIM(ISNULL(fflcity.cityname, '')) END AS shipfrom,
+		       ISNULL(ff.etd_date, '') AS shipfrometddate,
+		       CASE WHEN ISNULL(podcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(podcity.cityname))
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff3dcity.cityname)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff2dcity.cityname)
+				ELSE RTRIM(ffdcity.cityname) END AS shipto,
+		       (SELECT MAX(v) FROM (VALUES (soh.eta_finaldate), (ff.eta_datedport), (ff2.eta_datedport), (ff3.eta_datedport)) AS value(v)) AS shiptoetadate,
+		       RTRIM(soh.movement) AS movement,
+		       RTRIM(soh.incotermscode) AS Incoterm
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'BILLOFLADINGS'
+				AND ii.code = hbl.xbl_no
+			INNER JOIN dbo.so_header soh (NOLOCK) 
+				ON hbl.mastersono = soh.sono
+				AND hbl.masterso_seq = soh.so_seq
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) 
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno  --via MasterSO housebl_no
+			INNER JOIN dbo.city ffdcity (NOLOCK)
+				ON ff.dportcode = ffdcity.citycode
+			INNER JOIN dbo.country ffdcty (NOLOCK)
+				ON ffdcity.countrycode = ffdcty.countrycode
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			INNER JOIN dbo.vessel vv (NOLOCK) 
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK) 
+				ON ff.linercode = ll.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff2 (NOLOCK) 
+				ON soh.vesvoyno_leg = ff2.vesvoyno
+			LEFT JOIN dbo.city ff2dcity (NOLOCK)
+				ON ff2.dportcode = ff2dcity.citycode
+			LEFT JOIN dbo.country ff2dcty (NOLOCK)
+				ON ff2dcity.countrycode = ff2dcty.countrycode
+			LEFT JOIN dbo.vessel vv2 (NOLOCK) 
+				ON ff2.vesselcode = vv2.vesselcode
+			LEFT JOIN dbo.liner ll2 (NOLOCK) 
+				ON ff2.linercode = ll2.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff3 (NOLOCK) 
+				ON soh.vesvoyno_3rd = ff3.vesvoyno
+			LEFT JOIN dbo.city ff3dcity (NOLOCK)
+				ON ff3.dportcode = ff3dcity.citycode
+			LEFT JOIN dbo.country ff3dcty (NOLOCK)
+				ON ff3dcity.countrycode = ff3dcty.countrycode
+			LEFT JOIN dbo.vessel vv3 (NOLOCK) 
+				ON ff3.vesselcode = vv3.vesselcode
+			LEFT JOIN dbo.liner ll3 (NOLOCK) 
+				ON ff3.linercode = ll3.linercode
+			LEFT JOIN dbo.doc_prefix hblt (NOLOCK) 
+				ON hblt.doc_type = 'BLT'
+				AND hblt.prefix = soh.bl_type
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.por_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.por_name = RTRIM(tcity.cityname))
+			) AS porcity
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.pod_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.pod_name = RTRIM(tcity.cityname))
+			) AS podcity
+			LEFT JOIN (
+				SELECT hbl2.xbl_no,
+					SUM(lpd2.qty) AS qty,
+					MAX(ISNULL(unitmap.PartnerCode, ISNULL(uu.unitname, lpd2.unitcode))) AS unitcode,
+					SUM(lpd2.piece) AS piece,
+					SUM(lpd2.kgs) AS kgs,
+					SUM(lpd2.net_kgs) AS net_kgs,
+					SUM(lpd2.cbm) AS cbm
+				FROM dbo.housebl hbl2 (NOLOCK)
+				LEFT JOIN dbo.so_header soh2 (NOLOCK)
+					ON hbl2.housebl_no = soh2.bl_no
+				LEFT JOIN dbo.lp_detail lpd2 (NOLOCK) 
+					ON soh2.sono = lpd2.sono
+		            AND soh2.so_seq = lpd2.so_seq
+				LEFT JOIN dbo.unit uu (NOLOCK) ON ISNULL(uu.unitcode, '') = ISNULL(lpd2.unitcode, '')
+				LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap unitmap(NOLOCK)
+					ON unitmap.EDIName = 'SHIPMENT_PORTAL'
+					AND unitmap.codetype = 'PACKAGEUOM'
+					AND unitmap.Status = 'Y'
+					AND lpd2.unitcode = unitmap.OurCode
+				GROUP BY hbl2.xbl_no
+			) soii ON hbl.xbl_no = soii.xbl_no
+			INNER JOIN <include refid="dbName"/> aa (NOLOCK) 
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+		        AND aa.codetype = 'ORGANIZATIONS'
+				AND aa.code IN <include refid="companyCodelist"/>
+				AND ISNULL(aa.isetltoazure, '') = 'Y'
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findMasterBills" resultType="MasterBills">
+		SELECT DISTINCT
+			   ii.id AS [id],
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			   ISNULL(aa.azureid, 0) AS executionagentid,
+			   RTRIM(soh.ocean_bl_no) AS masterbillofladingno,
+			   'Ocean bill of lading' AS masterbillofladingtype,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv3.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv3.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv2.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv2.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+					WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+					WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+					ELSE 'Sea'
+				   END
+			   END AS modeoftransport,
+			   RTRIM(lph.movement) AS movement,
+			   RTRIM(lph.carriercontactno) AS carriercontractno,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN RTRIM(ll3.linername)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN RTRIM(ll2.linername)
+				ELSE RTRIM(ll.linername)
+			   END AS carriername,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap3.PartnerCode, ff3.linercode))
+					WHEN vv3.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					WHEN (ll3.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll3.scac_code,'')) = '') THEN 'TBCC' 
+					ELSE RTRIM(ll3.scac_code)
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap2.PartnerCode, ff2.linercode))
+					WHEN vv2.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					WHEN (ll2.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll2.scac_code,'')) = '') THEN 'TBCC' 
+					ELSE RTRIM(ll2.scac_code)
+				   END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode))
+					WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					WHEN (ll.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll.scac_code,'')) = '') THEN 'TBCC'
+					ELSE RTRIM(ll.scac_code)
+				   END
+			   END AS scac,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap3.PartnerCode, ff3.linercode)) ELSE '' END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap2.PartnerCode, ff2.linercode)) ELSE '' END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode)) ELSE '' END
+			   END AS airlinecode,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN RTRIM(ff3.voyage)
+					WHEN vv3.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv3.vesselnamelong, ISNULL(vv3.vesselname, '')))
+						+ CASE WHEN LEN(ISNULL(vv3.vesselnamelong, ISNULL(vv3.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff3.voyage, '')) = 0 THEN '' ELSE '/' END
+						+ RTRIM(ISNULL(ff3.voyage, ''))))
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN RTRIM(ff2.voyage)
+					WHEN vv2.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv2.vesselnamelong, ISNULL(vv2.vesselname, '')))
+						+ CASE WHEN LEN(ISNULL(vv2.vesselnamelong, ISNULL(vv2.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff2.voyage, '')) = 0 THEN '' ELSE '/' END
+						+ RTRIM(ISNULL(ff2.voyage, ''))))
+				   END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage)
+					WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+						+ CASE WHEN LEN(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff.voyage, '')) = 0 THEN '' ELSE '/' END
+						+ RTRIM(ISNULL(ff.voyage, ''))))
+				   END
+			   END AS vesselflight,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ISNULL(vv3.vesselnamelong, ISNULL(vv3.vesselname, '')))
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ISNULL(vv2.vesselnamelong, ISNULL(vv2.vesselname, '')))
+				   END
+				ELSE CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+				   END
+			   END AS vessel,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ff3.voyage)
+				   END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ff2.voyage)
+				   END
+				ELSE CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+					ELSE RTRIM(ff.voyage)
+				   END
+			   END AS voyage,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv3.vesselname = 'BY AIR' THEN RTRIM(ff3.voyage) ELSE '' END
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> ''
+				THEN CASE WHEN vv2.vesselname = 'BY AIR' THEN RTRIM(ff2.voyage) ELSE '' END
+				ELSE CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage) ELSE '' END
+			   END AS flightno,
+			   RIGHT(RTRIM(ISNULL(porcodemap.PartnerCode, soh.por_code)),2) + LEFT(RTRIM(ISNULL(porcodemap.PartnerCode, soh.por_code)),3) AS placeofreceipt,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(lportcodemap3.PartnerCode, ff3.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap3.PartnerCode, ff3.lportcode)),3)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(lportcodemap2.PartnerCode, ff2.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap2.PartnerCode, ff2.lportcode)),3)
+				ELSE RIGHT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),3)
+			   END AS portofloading,
+			   CASE
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(dportcodemap3.PartnerCode, ff3.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap3.PartnerCode, ff3.dportcode)),3)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(dportcodemap2.PartnerCode, ff2.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap2.PartnerCode, ff2.dportcode)),3)
+				ELSE RIGHT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),3)
+			   END AS portofdischarge,
+			   RIGHT(RTRIM(ISNULL(podcodemap.PartnerCode, soh.pod_code)),2) + LEFT(RTRIM(ISNULL(podcodemap.PartnerCode, soh.pod_code)),3) AS placeofdelivery,
+			   CASE WHEN poicity.cityname IS NOT NULL THEN RTRIM(poicity.cityname) ELSE RTRIM(ISNULL(poicodemap.PartnerCode, soh.poi_code)) END AS placeofissue,
+			   ISNULL(soh.issuedate, '') AS issuedate,
+			   ISNULL(ff.onboarddate, '') AS OnBoardDate
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK) 
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'MASTERBILLS'
+				AND ii.code = soh.ocean_bl_no
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) 
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON soh.sono = lpd.sono
+				AND soh.so_seq = lpd.so_seq
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON lpd.lp_no = lph.lp_no
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno  --via MasterSO housebl_no
+			INNER JOIN dbo.city ffdcity (NOLOCK)
+				ON ff.dportcode = ffdcity.citycode
+			INNER JOIN dbo.country ffdcty (NOLOCK)
+				ON ffdcity.countrycode = ffdcty.countrycode
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			INNER JOIN dbo.vessel vv (NOLOCK) 
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK) 
+				ON ff.linercode = ll.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff2 (NOLOCK) 
+				ON soh.vesvoyno_leg = ff2.vesvoyno
+			LEFT JOIN dbo.city ff2dcity (NOLOCK)
+				ON ff2.dportcode = ff2dcity.citycode
+			LEFT JOIN dbo.country ff2dcty (NOLOCK)
+				ON ff2dcity.countrycode = ff2dcty.countrycode
+			LEFT JOIN dbo.vessel vv2 (NOLOCK) 
+				ON ff2.vesselcode = vv2.vesselcode
+			LEFT JOIN dbo.liner ll2 (NOLOCK) 
+				ON ff2.linercode = ll2.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff3 (NOLOCK) 
+				ON soh.vesvoyno_3rd = ff3.vesvoyno
+			LEFT JOIN dbo.city ff3dcity (NOLOCK)
+				ON ff3.dportcode = ff3dcity.citycode
+			LEFT JOIN dbo.country ff3dcty (NOLOCK)
+				ON ff3dcity.countrycode = ff3dcty.countrycode
+			LEFT JOIN dbo.vessel vv3 (NOLOCK) 
+				ON ff3.vesselcode = vv3.vesselcode
+			LEFT JOIN dbo.liner ll3 (NOLOCK) 
+				ON ff3.linercode = ll3.linercode
+			LEFT JOIN dbo.city poicity (NOLOCK)
+				ON soh.poi_code = poicity.citycode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap (NOLOCK)
+				ON airmap.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap.codetype = 'AIRLINE'
+				AND airmap.Status = 'Y'
+				AND ff.linercode = airmap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap2 (NOLOCK)
+				ON airmap2.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap2.codetype = 'AIRLINE'
+				AND airmap2.Status = 'Y'
+				AND ff2.linercode = airmap2.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap3 (NOLOCK)
+				ON airmap3.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap3.codetype = 'AIRLINE'
+				AND airmap3.Status = 'Y'
+				AND ff3.linercode = airmap3.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap (NOLOCK)
+				ON lportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap.codetype = 'PORTCODE'
+				AND lportcodemap.Status = 'Y'
+				AND ff.lportcode = lportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap2 (NOLOCK)
+				ON lportcodemap2.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap2.codetype = 'PORTCODE'
+				AND lportcodemap2.Status = 'Y'
+				AND ff2.lportcode = lportcodemap2.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap3 (NOLOCK)
+				ON lportcodemap3.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap3.codetype = 'PORTCODE'
+				AND lportcodemap3.Status = 'Y'
+				AND ff3.lportcode = lportcodemap3.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap (NOLOCK)
+				ON dportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap.codetype = 'PORTCODE'
+				AND dportcodemap.Status = 'Y'
+				AND ff.dportcode = dportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap2 (NOLOCK)
+				ON dportcodemap2.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap2.codetype = 'PORTCODE'
+				AND dportcodemap2.Status = 'Y'
+				AND ff2.dportcode = dportcodemap2.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap3 (NOLOCK)
+				ON dportcodemap3.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap3.codetype = 'PORTCODE'
+				AND dportcodemap3.Status = 'Y'
+				AND ff3.dportcode = dportcodemap3.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap porcodemap (NOLOCK)
+				ON porcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND porcodemap.codetype = 'PORTCODE'
+				AND porcodemap.Status = 'Y'
+				AND soh.por_code = porcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap podcodemap (NOLOCK)
+				ON podcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND podcodemap.codetype = 'PORTCODE'
+				AND podcodemap.Status = 'Y'
+				AND soh.pod_code = podcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap poicodemap (NOLOCK)
+				ON poicodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND poicodemap.codetype = 'PORTCODE'
+				AND poicodemap.Status = 'Y'
+				AND soh.poi_code = poicodemap.OurCode
+			INNER JOIN <include refid="dbName"/> aa (NOLOCK)
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+				AND aa.codetype = 'ORGANIZATIONS'
+				AND aa.code IN <include refid="companyCodelist"/>
+				AND ISNULL(aa.isetltoazure, '') = 'Y'
+		WHERE ii.id IN <include refid="list"/>
+      </select> 
+	<select id="findContainers" resultType="Containers">
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       RTRIM(lph.containerno) AS containerno,
+		       RTRIM(lph.lp_no) AS LoadPlanRefNo,
+		       RTRIM(lph.containertype) AS containertype,
+		       CASE WHEN ISNULL(porcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(porcity.cityname)) ELSE RTRIM(ISNULL(fflcity.cityname, '')) END AS shipfrom,
+		       RTRIM(ISNULL(ff.etd_date, '')) AS shipfrometddate,
+		       CASE WHEN ISNULL(podcity.cityname,'') <![CDATA[ <> ]]> '' THEN RTRIM(UPPER(podcity.cityname))
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff3dcity.cityname)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff2dcity.cityname)
+				ELSE RTRIM(ffdcity.cityname) END AS shipto,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN ff3.eta_datedport 
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN ff2.eta_datedport 
+				ELSE ff.eta_datedport END AS shiptoetadate,
+			   lph.loadingdate AS loadingdate,
+		       RTRIM(lph.sealno1) AS sealno,
+			   RTRIM(lph.sealno2) AS sealno2,
+			   RTRIM(lph.carrier_sono) AS carriersono,
+		       RTRIM(soh.movement) AS movement,
+		       ISNULL(soii.kgs, 0) AS totalgrossweight,
+		       'KGS' AS totalgrossweightuom,
+		       ISNULL(soii.net_kgs, 0) AS totalnetweight,
+		       'KGS' AS totalnetweightuom,
+		       ISNULL(soii.qty, 0) AS totalpackage,
+		       'Piece' AS totalpackageuom,
+		       ISNULL(soii.cbm, 0) AS totalvolume,
+		       'CBM' AS totalvolumeuom,
+		       CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.lp_header lph (NOLOCK) 
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CONTAINERS'
+		        AND ii.code = lph.lp_no
+		        AND ii.code2 = lph.containerno
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON lph.lp_no = lpd.lp_no
+			INNER JOIN dbo.so_header soh (NOLOCK) 
+				ON lpd.sono = soh.sono
+				AND lpd.so_seq = soh.so_seq
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)		
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+		        AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+		        AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city ffdcity (NOLOCK)
+				ON ff.dportcode = ffdcity.citycode
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			INNER JOIN dbo.country ffdcty (NOLOCK)
+				ON ffdcity.countrycode = ffdcty.countrycode
+			LEFT JOIN dbo.vesvoyforwarder ff2 (NOLOCK) 
+				ON soh.vesvoyno_leg = ff2.vesvoyno
+			LEFT JOIN dbo.city ff2dcity (NOLOCK)
+				ON ff2.dportcode = ff2dcity.citycode
+			LEFT JOIN dbo.country ff2dcty (NOLOCK)
+				ON ff2dcity.countrycode = ff2dcty.countrycode
+			LEFT JOIN dbo.vesvoyforwarder ff3 (NOLOCK) 
+				ON soh.vesvoyno_3rd = ff3.vesvoyno
+			LEFT JOIN dbo.city ff3dcity (NOLOCK)
+				ON ff3.dportcode = ff3dcity.citycode
+			LEFT JOIN dbo.country ff3dcty (NOLOCK)
+				ON ff3dcity.countrycode = ff3dcty.countrycode
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.por_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.por_name = RTRIM(tcity.cityname))
+			) AS porcity
+			OUTER APPLY
+			(
+				SELECT TOP 1 tcity.cityname, tcty.countryname
+				FROM dbo.city AS tcity(NOLOCK)
+				INNER JOIN dbo.country AS tcty(NOLOCK) ON tcity.countrycode = tcty.countrycode AND tcity.suspended = 'A' AND tcty.suspended = 'A'
+				WHERE (soh.pod_name LIKE RTRIM(tcity.cityname) + '%' + RTRIM(tcty.countryname)
+					OR soh.pod_name = RTRIM(tcity.cityname))
+			) AS podcity
+			INNER JOIN (
+				SELECT lph2.lp_no,
+					SUM(lpd2.qty) AS qty,
+					SUM(lpd2.piece) AS piece,
+					SUM(lpd2.kgs) AS kgs,
+					SUM(lpd2.net_kgs) AS net_kgs,
+					SUM(lpd2.cbm) AS cbm
+				FROM dbo.lp_header lph2 (NOLOCK)
+					INNER JOIN dbo.lp_detail lpd2 (NOLOCK) 
+						ON lph2.lp_no = lpd2.lp_no
+		       GROUP BY lph2.lp_no
+		     ) soii ON lph.lp_no = soii.lp_no
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findConsolidations" resultType="Consolidations">
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       RTRIM(lph.containerno) AS containerno,
+		       RTRIM(lph.sealno1) AS sealno,
+		       RTRIM(lph.sealno2) AS sealno2,
+		       nn.azureid AS containerid,
+		       RTRIM(lph.lp_no) AS ConsolidationNo,
+		       CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+		       RTRIM(lph.containertype) AS equipmenttype,
+		       RTRIM(fflcity.cityname) AS origincfs,
+		       ISNULL(ff.cfs_closingdate, '') AS cfscutoffdate,
+			   lph.loadingdate AS loadingdate,
+			   RTRIM(lph.carrier_sono) AS carriersono,
+		       ISNULL(soii.kgs, 0) AS totalgrossweight,
+		       'KGS' AS totalgrossweightuom,
+		       ISNULL(soii.net_kgs, 0) AS totalnetweight,
+		       'KGS' AS totalnetweightuom,
+		       ISNULL(soii.qty, 0) AS totalpackage,
+		       'Piece' AS totalpackageuom,
+		       ISNULL(soii.cbm, 0) AS totalvolume,
+		       'CBM' AS totalvolumeuom
+		FROM <include refid="dbName"/> ii (NOLOCK) 
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CONSOLIDATIONS'
+				AND ii.code = lph.lp_no
+				AND ii.code2 = lph.containerno
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK) 
+				ON ii.dbname = nn.dbname
+				AND ii.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+		        AND lph.containerno = nn.code2
+		        AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON lph.lp_no = lpd.lp_no
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON lpd.sono = soh.sono
+				AND lpd.so_seq = soh.so_seq
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)		
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+		        AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+		        AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'	
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			LEFT JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			LEFT JOIN (
+				SELECT lph2.lp_no,
+					SUM(lpd2.qty) AS qty,
+					SUM(lpd2.piece) AS piece,
+					SUM(lpd2.kgs) AS kgs,
+					SUM(lpd2.net_kgs) AS net_kgs,
+					SUM(lpd2.cbm) AS cbm
+				FROM dbo.lp_header lph2 (NOLOCK)
+					LEFT JOIN dbo.lp_detail lpd2 (NOLOCK) 
+						ON lph2.lp_no = lpd2.lp_no
+		       GROUP BY lph2.lp_no
+			) soii 
+				ON lph.lp_no = soii.lp_no
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findConsignments" resultType="Consignments">
+		SELECT DISTINCT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       ss.azureid AS shipmentid,
+		       'Origin Agent' AS consignmenttype,
+		       CONVERT(VARCHAR(23), soh.createdate, 126) AS consignmentdate,
+		       CONVERT(VARCHAR(20), aa.azureid) AS executionagentid,
+		       RTRIM(fflcity.cityname) AS shipfrom,
+		       ff.etd_date AS shipfrometddate,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff3dcity.cityname)
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN RTRIM(ff2dcity.cityname)
+				ELSE RTRIM(ffdcity.cityname) END AS shipto,
+		       CASE 
+				WHEN ISNULL(soh.vesvoyno_3rd,'') <![CDATA[ <> ]]> '' THEN ff3.eta_datedport 
+				WHEN ISNULL(soh.vesvoyno_leg,'') <![CDATA[ <> ]]> '' THEN ff2.eta_datedport 
+				ELSE ff.eta_datedport END AS shiptoetadate,
+		       CASE soh.so_status 
+			   WHEN 'A' THEN 'Active'
+			   WHEN 'C' THEN 'Inactive'
+			   WHEN 'P' THEN 'Active'
+			   END AS STATUS,
+		       CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+		       RTRIM(soh.movement) AS movement,
+		       ISNULL(soii.piece, 0) AS unit,
+		       'Each' AS unituom,
+		       ISNULL(soii.qty, 0) AS package,
+		       RTRIM(soii.unitcode) AS packageuom,
+		       ISNULL(soii.cbm, 0) AS volume,
+		       'CBM' AS volumeuom,
+		       ISNULL(soii.kgs, 0) AS grossweight,
+		       'KGS' AS grossweightuom,
+		       ISNULL(soii.net_kgs, 0) AS netweight,
+		       'KGS' AS netweightuom,
+		       CASE WHEN hh.azureid IS NULL THEN '' ELSE CONVERT(VARCHAR,hh.azureid) END AS housebillid,
+		       CASE WHEN mm.azureid IS NULL THEN '' ELSE CONVERT(VARCHAR,mm.azureid) END AS masterbillid,
+		       0 AS triangletradeflag,
+		       (CASE soh.memo_bl_flag
+		          WHEN 'M' THEN 1
+		          ELSE 0
+		        END) AS memobolflag,
+		       1 AS [sequence]
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CONSIGNMENTS'
+				AND ii.code = soh.sono
+				AND ii.seq = soh.so_seq
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			LEFT JOIN dbo.housebl hbl (NOLOCK)
+				ON soh.bl_no = hbl.housebl_no
+			LEFT JOIN <include refid="dbName"/> hh (NOLOCK) 
+				ON ss.dbname = hh.dbname
+				AND ss.sysname = hh.sysname
+				AND hh.codetype = 'BILLOFLADINGS'
+				AND hbl.xbl_no = hh.code
+				AND ISNULL(hh.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON  ss.dbname = mm.dbname
+				AND ss.sysname = mm.sysname
+		        AND mm.codetype = 'MASTERBILLS'
+		        AND soh.ocean_bl_no = mm.code
+		        AND ISNULL(mm.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno  --via MasterSO housebl_no
+			INNER JOIN dbo.city ffdcity (NOLOCK)
+				ON ff.dportcode = ffdcity.citycode
+			INNER JOIN dbo.country ffdcty (NOLOCK)
+				ON ffdcity.countrycode = ffdcty.countrycode
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			INNER JOIN dbo.vessel vv (NOLOCK) 
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK) 
+				ON ff.linercode = ll.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff2 (NOLOCK) 
+				ON soh.vesvoyno_leg = ff2.vesvoyno
+			LEFT JOIN dbo.city ff2dcity (NOLOCK)
+				ON ff2.dportcode = ff2dcity.citycode
+			LEFT JOIN dbo.country ff2dcty (NOLOCK)
+				ON ff2dcity.countrycode = ff2dcty.countrycode
+			LEFT JOIN dbo.vessel vv2 (NOLOCK) 
+				ON ff2.vesselcode = vv2.vesselcode
+			LEFT JOIN dbo.liner ll2 (NOLOCK) 
+				ON ff2.linercode = ll2.linercode
+			LEFT JOIN dbo.vesvoyforwarder ff3 (NOLOCK) 
+				ON soh.vesvoyno_3rd = ff3.vesvoyno
+			LEFT JOIN dbo.city ff3dcity (NOLOCK)
+				ON ff3.dportcode = ff3dcity.citycode
+			LEFT JOIN dbo.country ff3dcty (NOLOCK)
+				ON ff3dcity.countrycode = ff3dcty.countrycode
+			LEFT JOIN dbo.vessel vv3 (NOLOCK) 
+				ON ff3.vesselcode = vv3.vesselcode
+			LEFT JOIN dbo.liner ll3 (NOLOCK) 
+				ON ff3.linercode = ll3.linercode
+			LEFT JOIN (
+				SELECT soi.sono,
+					soi.so_seq,
+					SUM(soi.qty) AS qty,
+					MAX(ISNULL(unitmap.PartnerCode, ISNULL(uu.unitname, soi.unitcode))) AS unitcode,
+					SUM(soi.piece) AS piece,
+					SUM(soi.kgs) AS kgs,
+					SUM(soi.net_kgs) AS net_kgs,
+					SUM(soi.cbm) AS cbm
+				FROM dbo.so_item soi (NOLOCK)
+					LEFT JOIN dbo.unit uu (NOLOCK) ON ISNULL(uu.unitcode, '') = ISNULL(soi.unitcode, '')
+					LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap unitmap(NOLOCK)
+						ON unitmap.EDIName = 'SHIPMENT_PORTAL'
+						AND unitmap.codetype = 'PACKAGEUOM'
+						AND unitmap.Status = 'Y'
+						AND soi.unitcode = unitmap.OurCode
+				GROUP BY soi.sono, soi.so_seq
+			) soii
+				ON soh.sono = soii.sono
+		        AND soh.so_seq = soii.so_seq
+			INNER JOIN <include refid="dbName"/> aa (NOLOCK)
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+		        AND aa.codetype = 'ORGANIZATIONS'
+		        AND aa.code IN <include refid="companyCodelist"/>
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findCargoDetails" resultType="CargoDetails">
+		SELECT
+		       ii.id AS [id],
+		       'FreightSystem' AS createdby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		       'FreightSystem' AS updatedby,
+		       CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		       ss.azureid AS shipmentid,
+		       CASE WHEN ss.sysname IN ('CRUISE') THEN 'CRUISE' ELSE 'FREIGHT' END AS OrderType,
+		       cr.itemseq AS [sequence],
+		       soi.marks AS shippingmarks,
+		       soi.descriptions AS [description],
+		       ISNULL(soi.piece, 0) AS unit,
+		       'Each' AS unituom,
+		       ISNULL(soi.qty, 0) AS package,
+		       RTRIM(ISNULL(unitmap.PartnerCode, ISNULL(uu.unitname, soi.unitcode))) AS packageuom,
+		       ISNULL(soi.cbm, 0) AS volume,
+		       'CBM' AS volumeuom,
+		       ISNULL(soi.kgs, 0) AS grossweight,
+		       'KGS' AS grossweightuom,
+		       ISNULL(soi.net_kgs, 0) AS netweight,
+		       'KGS' AS netweightuom,
+		       RTRIM(soi.commoditycode1) AS commodity,
+		       RTRIM(soi.htscode) AS hscode,
+		       RTRIM(ISNULL(soi.po_no,'')) + '~' + RTRIM(ISNULL(soi.ref_no,'')) + '~' + RTRIM(ISNULL(soi.POSeq,'')) AS productnumber,
+		       RTRIM(fflcty.countryname) AS countryoforigin
+		FROM <include refid="dbName"/> ii(NOLOCK)
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CARGODETAILS'
+				AND ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND ii.code = ss.code
+				AND ii.seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.so_header soh(NOLOCK)
+				ON CAST(ss.code AS CHAR) = soh.sono  --ss.code = soh.sono
+		        AND ss.seq = soh.so_seq
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			INNER JOIN dbo.country fflcty (NOLOCK)
+				ON fflcity.countrycode = fflcty.countrycode
+			INNER JOIN dbo.so_item soi (NOLOCK)
+				ON soi.sono = soh.sono
+				AND soi.so_seq = soh.so_seq
+				AND soi.itemseq = CONVERT(INT, ISNULL(SUBSTRING(ii.code3,1,CHARINDEX('~',ii.code3,1) - 1),0))
+				AND ii.code3 = CONVERT(VARCHAR,ISNULL(soi.itemseq,'')) + '~' + RTRIM(ISNULL(soi.po_no,'')) + '~' + RTRIM(ISNULL(soi.ref_no,''))
+			INNER JOIN (
+				SELECT tcr.sono, tcr.so_seq, tcr.itemseq, tcr.po_no, tcr.ref_no,
+					SUM(tcr.inpcs) AS piece, SUM(tcr.inqty) AS qty, MIN(tcr.inunit) AS unitcode, SUM(tcr.incbm) AS cbm, SUM(tcr.inkgs) AS kgs, SUM(tcr.net_kgs) AS net_kgs
+				FROM dbo.cargoreceive tcr (nolock)
+				GROUP BY tcr.sono, tcr.so_seq, tcr.itemseq, tcr.po_no, tcr.ref_no
+			) cr ON soi.sono = cr.sono
+				AND soi.so_seq = cr.so_seq
+				AND soi.itemseq = cr.itemseq
+				AND ISNULL(soi.po_no,'') = ISNULL(cr.po_no,'')
+				AND ISNULL(soi.ref_no,'') = ISNULL(cr.ref_no,'')
+				AND ii.code3 = CONVERT(VARCHAR,ISNULL(cr.itemseq,'')) + '~' + RTRIM(ISNULL(cr.po_no,'')) + '~' + RTRIM(ISNULL(cr.ref_no,''))
+			LEFT JOIN dbo.unit uu (NOLOCK)
+				ON ISNULL(uu.unitcode, '') = ISNULL(soi.unitcode, '')
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap unitmap (NOLOCK)
+				ON unitmap.EDIName = 'SHIPMENT_PORTAL'
+				AND unitmap.codetype = 'PACKAGEUOM'
+				AND unitmap.Status = 'Y'
+				AND soi.unitcode = unitmap.OurCode
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findShipmentLoads" resultType="ShipmentLoads">
+		SELECT DISTINCT
+		    ii.id AS [id],
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    ss.azureid AS shipmentid,
+		    cc.azureid AS consignmentid,
+		    oo.azureid AS consolidationid,
+		    nn.azureid AS containerid,
+		    CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			END AS modeoftransport,
+		    RTRIM(lph.carrier_sono) AS carrierbookingno,
+		    CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl,
+		    RTRIM(fflcity.cityname) AS loadingplace,
+		    aa.azureid AS loadingpartyid,
+		    RTRIM(lph.containertype) AS equipmenttype
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'SHIPMENTLOADS'
+				AND soh.sono = ii.code
+				AND soh.so_seq = ii.seq
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON ii.code2 = lph.lp_no
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+				ON ss.dbname = cc.dbname
+				AND ss.sysname = cc.sysname
+				AND cc.codetype = 'CONSIGNMENTS'
+				AND soh.sono = cc.code
+				AND soh.so_seq = cc.seq
+				AND ISNULL(cc.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="dbName"/> oo (NOLOCK)
+				ON ss.dbname = oo.dbname
+				AND ss.sysname = oo.sysname
+				AND oo.codetype = 'CONSOLIDATIONS'
+				AND lph.lp_no = oo.code
+				AND lph.containerno = oo.code2
+				AND ISNULL(oo.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON ss.dbname = nn.dbname
+				AND ss.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+				AND lph.containerno = nn.code2
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city fflcity (NOLOCK)
+				ON ff.lportcode = fflcity.citycode
+			LEFT JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			LEFT JOIN <include refid="dbName"/> aa (NOLOCK)
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+				AND aa.codetype = 'ORGANIZATIONS'
+				AND soh.agentcode = aa.code
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findShipmentLoadDetails" resultType="ShipmentLoadDetails">
+		SELECT --DISTINCT
+		    ii.id AS [id],
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    ss.azureid AS shipmentid,
+		    cc.azureid AS consignmentid,
+		    dd.azureid AS cargodetailid,
+		    sl.azureid AS shipmentloadid,
+		    nn.azureid AS containerid,
+		    oo.azureid AS consolidationid,
+		    ISNULL(lpd.loadorder, 1) AS Sequence,
+		    ISNULL(lpd.qty, 0) AS package,
+		    RTRIM(ISNULL(unitmap.PartnerCode, ISNULL(uu.unitname, lpd.unitcode))) AS packageuom,
+		    ISNULL(lpd.piece, 0) AS unit,
+		    'Each' AS unituom,
+		    ISNULL(lpd.cbm, 0) AS volume,
+		    'CBM' AS volumeuom,
+		    ISNULL(lpd.kgs, 0) AS grossweight,
+		    'KGS' AS grossweightuom,
+		    ISNULL(lpd.net_kgs, 0) AS netweight,
+		    'KGS' AS netweightuom
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'SHIPMENTLOADDETAILS'
+				AND CAST(ii.code2 AS CHAR) = lph.lp_no  --ii.code2 = lph.lp_no
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON lph.lp_no = lpd.lp_no
+				AND ii.code = lpd.sono
+				AND ii.seq = lpd.so_seq
+				AND lpd.itemseq = CONVERT(INT, ISNULL(SUBSTRING(ii.code3,1,CHARINDEX('~',ii.code3,1) - 1),0))
+				AND lpd.sub_seq = CONVERT(INT, ISNULL(SUBSTRING(ii.code3,CHARINDEX('~',ii.code3,1) + 1,CHARINDEX('~',ii.code3,CHARINDEX('~',ii.code3,1) + 1) - CHARINDEX('~',ii.code3,1) - 1),0))
+			INNER JOIN dbo.CargoReceive cr (NOLOCK)
+				ON lpd.sono = cr.sono
+				AND lpd.so_seq = cr.so_seq
+				AND lpd.itemseq = cr.itemseq
+				AND lpd.sub_seq = cr.itemsubseq
+				AND ii.code3 = CONVERT(VARCHAR,ISNULL(cr.itemseq,'')) + '~' + CONVERT(VARCHAR,ISNULL(cr.itemsubseq,'')) + '~' + RTRIM(ISNULL(cr.po_no,'')) + '~' + RTRIM(ISNULL(cr.ref_no,''))
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND ii.code = ss.code --SO#
+				AND ii.seq = ss.seq --SO_Seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+				ON ss.dbname = cc.dbname
+				AND ss.sysname = cc.sysname
+				AND cc.codetype = 'CONSIGNMENTS'
+				AND ii.code = cc.code --SO#
+				AND ii.seq = cc.seq --SO_Seq
+				AND ISNULL(cc.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="dbName"/> dd (NOLOCK)
+				ON ss.dbname = dd.dbname
+				AND ss.sysname = dd.sysname
+		        AND dd.codetype = 'CARGODETAILS'
+		        AND lpd.sono = dd.code
+		        AND lpd.so_seq = dd.seq
+		        AND CONVERT(VARCHAR,ISNULL(cr.itemseq,'')) + '~' + RTRIM(ISNULL(cr.po_no,'')) + '~' + RTRIM(ISNULL(cr.ref_no,'')) = ISNULL(dd.code3, '')
+		        AND ISNULL(dd.isetltoazure, '') = 'Y'	
+		        AND ISNULL(dd.status, '') NOT IN ('DELETE','DELETED')
+			INNER JOIN <include refid="dbName"/> sl (NOLOCK)
+				ON ss.dbname = sl.dbname
+				AND ss.sysname = sl.sysname
+				AND sl.codetype = 'SHIPMENTLOADS'
+				AND lpd.sono = sl.code
+				AND lpd.so_seq = sl.seq
+				AND lpd.lp_no = sl.code2
+				AND ISNULL(sl.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON ss.dbname = nn.dbname
+				AND ss.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+				AND lph.containerno = nn.code2
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="dbName"/> oo (NOLOCK)
+				ON ss.dbname = oo.dbname
+				AND ss.sysname = oo.sysname
+				AND oo.codetype = 'CONSOLIDATIONS'
+				AND lpd.lp_no = oo.code
+				AND lph.containerno = oo.code2
+				AND ISNULL(oo.isetltoazure, '') = 'Y'
+			LEFT JOIN dbo.unit uu (NOLOCK)
+				ON ISNULL(uu.unitcode, '') = ISNULL(lpd.unitcode, '')
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap unitmap (NOLOCK)
+				ON unitmap.EDIName = 'SHIPMENT_PORTAL'
+				AND unitmap.codetype = 'PACKAGEUOM'
+				AND unitmap.Status = 'Y'
+				AND lpd.unitcode = unitmap.OurCode
+		WHERE ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findBillOfLadingContacts" resultType="BillOfLadingContacts">
+		SELECT 
+			zz.id,
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    hh.azureid AS billofladingid,
+		    oo.id AS organizationid,  --Origin Agent and Principal
+		    zz.code3 AS organizationrole,
+		    RTRIM(oo.Name) AS companyname,
+		    RTRIM(oo.Address) AS [address],
+		    RTRIM(oo.ContactName) AS contactname,
+		    RTRIM(oo.ContactNumber) AS contactnumber,
+		    RTRIM(oo.ContactEmail) AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK) --BILLOFLADINGCONTACTS
+			INNER JOIN <include refid="dbName"/> hh (NOLOCK) --BILLOFLADINGS
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'BILLOFLADINGCONTACTS'
+				AND zz.dbname = hh.dbname
+				AND zz.sysname = hh.sysname
+				AND hh.codetype = 'BILLOFLADINGS'
+				AND zz.code = CONVERT(VARCHAR(50), hh.id)
+				AND hh.isetltoazure = 'Y'
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode in ('O/A', 'P')
+			INNER JOIN <include refid="azureMasterDB"/>.[dbo].[Organizations] oo (NOLOCK)
+				ON CONVERT(INT, zz.code2) = oo.id
+		WHERE zz.id IN <include refid="list"/>
+		UNION
+		SELECT 
+			zz.id,
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    hh.azureid AS billofladingid,
+		    ISNULL(CONVERT(INT, zz.code2), 0) AS organizationid,  --Destination Agent, Consignee, Supplier/Shipper and Other party
+		    zz.code3 AS organizationrole,
+			RTRIM(ISNULL(soa.companyname, '')) AS companyname,
+		    CONVERT(NVARCHAR(500), RTRIM(ISNULL(soa.address1, '')) + '\n' + RTRIM(ISNULL(soa.address2, '')) + '\n' + RTRIM(ISNULL(soa.address3, '')) + '\n' + RTRIM(ISNULL(soa.address4, ''))) AS [address],
+		    RTRIM(ISNULL(soa.contact, '')) AS contactname,
+		    RTRIM(ISNULL(soa.telno, '')) AS contactnumber,
+		    '' AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK) --BILLOFLADINGCONTACTS
+			INNER JOIN <include refid="dbName"/> hh (NOLOCK) --BILLOFLADINGS
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'BILLOFLADINGCONTACTS'
+				AND zz.dbname = hh.dbname
+				AND zz.sysname = hh.sysname
+				AND hh.codetype = 'BILLOFLADINGS'
+				AND zz.code = CONVERT(VARCHAR(50), hh.id)
+				AND hh.isetltoazure = 'Y'
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON hh.code = hbl.xbl_no
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON hbl.mastersono = soh.sono
+				AND hbl.masterso_seq = soh.so_seq
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON zz.dbname = ss.dbname
+				AND zz.sysname = ss.sysname
+		        AND ss.codetype = 'SHIPMENTS'
+		        AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+		        AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode IN ('A', 'C', 'V', 'S', 'N1', 'N2')
+			INNER JOIN dbo.so_address soa (NOLOCK)
+				ON soh.sono = soa.sono
+				AND soh.so_seq = soa.so_seq
+				AND ((map.ourcode <![CDATA[ <> ]]> 'V' AND map.ourcode = soa.companytype) OR (map.ourcode = 'V' AND soa.companytype = 'S'))  --Supplier=Shipper
+		WHERE zz.id IN <include refid="list"/>
+	</select> 
+	<select id="findMasterBillContacts" resultType="MasterBillContacts">
+		SELECT --DISTINCT
+		    zz.id AS [id],
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    mm.azureid AS masterbillofladingid,
+		    oo.id AS organizationid,
+		    zz.code3 AS organizationrole,
+		    RTRIM(oo.Name) AS companyname,
+		    RTRIM(oo.Address) AS [address],
+		    RTRIM(oo.ContactName) AS contactname,
+		    RTRIM(oo.ContactNumber) AS contactnumber,
+		    RTRIM(oo.ContactEmail) AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK)
+			INNER JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'MASTERBILLCONTACTS'
+				AND zz.dbname = mm.dbname
+				AND zz.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND zz.code= CONVERT(VARCHAR(50),mm.id)
+				AND mm.isetltoazure = 'Y'
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode IN ('O/A','P')  --Origin Agent, Principal
+			INNER JOIN <include refid="azureMasterDB"/>.[dbo].[Organizations] oo (NOLOCK)
+				ON CONVERT(INT, zz.code2) = oo.id
+		WHERE zz.id IN <include refid="list"/>
+		UNION
+		SELECT 
+			zz.id,
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    mm.azureid AS masterbillofladingid,
+		    ISNULL(CONVERT(INT, zz.code2), 0) AS organizationid,
+		    map.PartnerCode AS organizationrole,
+		    RTRIM(ISNULL(soa.companyname, '')) AS companyname,
+		    CONVERT(NVARCHAR(500), RTRIM(ISNULL(soa.address1, '')) + '\n' + RTRIM(ISNULL(soa.address2, '')) + '\n' + RTRIM(ISNULL(soa.address3, '')) + '\n' + RTRIM(ISNULL(soa.address4, ''))) AS [address],
+		    RTRIM(ISNULL(soa.contact, '')) AS contactname,
+		    RTRIM(ISNULL(soa.telno, '')) AS contactnumber,
+		    '' AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK)
+			INNER JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'MASTERBILLCONTACTS'
+				AND zz.dbname = mm.dbname
+				AND zz.sysname = mm.sysname
+		        AND mm.codetype = 'MASTERBILLS'
+		        AND zz.code = CONVERT(VARCHAR(50), mm.id)
+		        AND mm.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON mm.code = soh.ocean_bl_no
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode IN ('A')  --Dest Agent
+			INNER JOIN dbo.so_address soa (NOLOCK)
+				ON soh.sono = soa.sono
+				AND soh.so_seq = soa.so_seq
+				AND map.ourcode = soa.companytype
+		WHERE zz.id IN <include refid="list"/>
+	</select> 
+	<select id="findShipmentContacts" resultType="ShipmentContacts">
+		SELECT 
+			zz.id,
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    ss.azureid AS shipmentid,
+		    oo.id AS organizationid,  --Origin Agent and Principal
+		    zz.code3 AS organizationrole,
+		    RTRIM(oo.Name) AS companyname,
+		    RTRIM(oo.Address) AS [address],
+		    RTRIM(oo.ContactName) AS contactname,
+		    RTRIM(oo.ContactNumber) AS contactnumber,
+		    RTRIM(oo.ContactEmail) AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK) --SHIPMENTCONTACTS
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) --SHIPMENTS
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'SHIPMENTCONTACTS'
+				AND zz.dbname = ss.dbname
+				AND zz.sysname = ss.sysname
+		        AND ss.codetype = 'SHIPMENTS'
+		        AND zz.code = CONVERT(VARCHAR(50), ss.id)
+		        AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode in ('O/A', 'P')
+			INNER JOIN <include refid="azureMasterDB"/>.[dbo].[Organizations] oo (NOLOCK)
+				ON CONVERT(INT, zz.code2) = oo.id
+		WHERE zz.id IN <include refid="list"/>
+		UNION
+		SELECT 
+			zz.id,
+		    'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    ss.azureid AS shipmentid,
+		    ISNULL(CONVERT(INT, zz.code2), 0) AS organizationid,  --Destination Agent, Consignee, Supplier/Shipper and Other party
+		    map.PartnerCode AS organizationrole,
+		    RTRIM(ISNULL(soa.companyname, '')) AS companyname,
+		    CONVERT(NVARCHAR(500), RTRIM(ISNULL(soa.address1, '')) + '\n' + RTRIM(ISNULL(soa.address2, '')) + '\n' + RTRIM(ISNULL(soa.address3, '')) + '\n' + RTRIM(ISNULL(soa.address4, ''))) AS [address],
+		    RTRIM(ISNULL(soa.contact, '')) AS contactname,
+		    RTRIM(ISNULL(soa.telno, '')) AS contactnumber,
+		    '' AS contactemail
+		FROM <include refid="dbName"/> zz (NOLOCK) --SHIPMENTCONTACTS
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) --SHIPMENTS
+				ON zz.dbname = #{db}
+				AND zz.sysname = #{sysname}
+				AND zz.codetype = 'SHIPMENTCONTACTS'
+				AND zz.dbname = ss.dbname
+				AND zz.sysname = ss.sysname
+		        AND ss.codetype = 'SHIPMENTS'
+		        AND zz.code = CONVERT(VARCHAR(50), ss.id)
+		        AND ss.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND zz.code3 = map.PartnerCode
+				AND map.ourcode IN ('A', 'C', 'V', 'S', 'N1', 'N2')
+			INNER JOIN dbo.so_address soa (NOLOCK)
+				ON soh.sono = soa.sono
+				AND soh.so_seq = soa.so_seq
+				AND ((map.ourcode <![CDATA[ <> ]]> 'V' AND map.ourcode = soa.companytype) OR (map.ourcode = 'V' AND soa.companytype = 'S'))  --Supplier=Shipper
+		WHERE zz.id IN <include refid="list"/>
+	</select> 
+	<select id="findItineraries" resultType="Itineraries">
+		--1st leg
+		SELECT DISTINCT
+			   ii.id AS [id],
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			   ii.seq AS [sequence],
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+			   RTRIM(ll.linername) AS carriername,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode))
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				WHEN (ll.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll.scac_code,'')) = '') THEN 'TBCC' 
+				ELSE RTRIM(ll.scac_code)
+			   END AS scac,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode)) ELSE '' END AS airlinecode,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage)
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+					+ CASE WHEN LEN(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff.voyage, '')) = 0 THEN '' ELSE '/' END
+					+ RTRIM(ISNULL(ff.voyage, ''))))
+			   END AS vesselflight,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+			   END AS vesselname,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ff.voyage)
+			   END AS voyage,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage) ELSE '' END AS flightnumber,
+			   RIGHT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),3) AS loadingport,
+			   ff.etd_date AS etddate,
+			   ff.eta_datedport AS etadate,
+			   RIGHT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),3) AS dischargeport,
+			   CASE WHEN ((vc.confirmdate IS NOT NULL OR mapp.Status IS NOT NULL) AND ff.atd_date IS NOT NULL AND ff.atd_date <![CDATA[<]]>= GETDATE()) THEN ff.atd_date ELSE NULL END AS atddate,
+			   CASE WHEN (ff.eta_datedport IS NOT NULL AND ff.eta_datedport <![CDATA[<]]>= GETDATE()) THEN ff.eta_datedport ELSE NULL END AS atadate,
+			   ff.cy_openingdate AS CYOpenDate,
+			   ff.cy_closingdate AS CYClosingDate,
+			   'Active' AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'ITINERARIES'
+				AND ii.code = ff.vesvoyno
+				--AND ii.code2 = ff.voyage
+			INNER JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK)
+				ON ff.linercode = ll.linercode
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ff.vesvoyno = soh.vesvoyno --1st leg
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) 
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap (NOLOCK)
+				ON airmap.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap.codetype = 'AIRLINE'
+				AND airmap.Status = 'Y'
+				AND ff.linercode = airmap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap (NOLOCK)
+				ON lportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap.codetype = 'PORTCODE'
+				AND lportcodemap.Status = 'Y'
+				AND ff.lportcode = lportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap (NOLOCK)
+				ON dportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap.codetype = 'PORTCODE'
+				AND dportcodemap.Status = 'Y'
+				AND ff.dportcode = dportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.codetype = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ITINERARIES_WITHOUT_EBOOKINGNO'
+				AND mapp.PartnerCode = ii.sysname
+			OUTER APPLY (
+				SELECT TOP 1 * FROM dbo.vesvoyconfirmclient vcc (NOLOCK)
+				WHERE vcc.customertype = 'C'
+				AND vcc.customercode IN (<include refid="PRINCIPAL_CODE"/>)
+				AND vcc.confirmstatus = 'Y'
+				AND ff.vesvoyno = vcc.vesvoyno
+				ORDER BY vcc.confirmdate DESC
+			) vc
+		WHERE ii.seq = 1
+		AND ii.id IN <include refid="list"/>
+		UNION
+		--2nd leg
+		SELECT DISTINCT
+			   ii.id AS [id],
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			   ii.seq AS [sequence],
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+			   RTRIM(ll.linername) AS carriername,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode))
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				WHEN (ll.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll.scac_code,'')) = '') THEN 'TBCC' 
+				ELSE RTRIM(ll.scac_code)
+			   END AS scac,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode)) ELSE '' END AS airlinecode,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage)
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+					+ CASE WHEN LEN(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff.voyage, '')) = 0 THEN '' ELSE '/' END
+					+ RTRIM(ISNULL(ff.voyage, ''))))
+			   END AS vesselflight,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+			   END AS vesselname,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ff.voyage)
+			   END AS voyage,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage) ELSE '' END AS flightnumber,
+			   RIGHT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),3) AS loadingport,
+			   ff.etd_date AS etddate,
+			   ff.eta_datedport AS etadate,
+			   RIGHT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),3) AS dischargeport,
+			   CASE WHEN ((vc.confirmdate IS NOT NULL OR mapp.Status IS NOT NULL) AND ff.atd_date IS NOT NULL AND ff.atd_date <![CDATA[<]]>= GETDATE()) THEN ff.atd_date ELSE NULL END AS atddate,
+			   CASE WHEN (ff.eta_datedport IS NOT NULL AND ff.eta_datedport <![CDATA[<]]>= GETDATE()) THEN ff.eta_datedport ELSE NULL END AS atadate,
+			   ff.cy_openingdate AS CYOpenDate,
+			   ff.cy_closingdate AS CYClosingDate,
+			   'Active' AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'ITINERARIES'
+				AND ii.code = ff.vesvoyno
+				--AND ii.code2 = ff.voyage
+			INNER JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK)
+				ON ff.linercode = ll.linercode
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ff.vesvoyno = soh.vesvoyno_leg --2nd leg
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) 
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap (NOLOCK)
+				ON airmap.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap.codetype = 'AIRLINE'
+				AND airmap.Status = 'Y'
+				AND ff.linercode = airmap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap (NOLOCK)
+				ON lportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap.codetype = 'PORTCODE'
+				AND lportcodemap.Status = 'Y'
+				AND ff.lportcode = lportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap (NOLOCK)
+				ON dportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap.codetype = 'PORTCODE'
+				AND dportcodemap.Status = 'Y'
+				AND ff.dportcode = dportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.codetype = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ITINERARIES_WITHOUT_EBOOKINGNO'
+				AND mapp.PartnerCode = ii.sysname
+			OUTER APPLY (
+				SELECT TOP 1 * FROM dbo.vesvoyconfirmclient vcc (NOLOCK)
+				WHERE vcc.customertype = 'C'
+				AND vcc.customercode IN (<include refid="PRINCIPAL_CODE"/>)
+				AND vcc.confirmstatus = 'Y'
+				AND ff.vesvoyno = vcc.vesvoyno
+				ORDER BY vcc.confirmdate DESC
+			) vc
+		WHERE ii.seq = 2
+		AND ii.id IN <include refid="list"/>
+		UNION
+		--3rd leg
+		SELECT DISTINCT
+			   ii.id AS [id],
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			   ii.seq AS [sequence],
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+				WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+				ELSE 'Sea'
+			   END AS modeoftransport,
+			   RTRIM(ll.linername) AS carriername,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode))
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				WHEN (ll.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll.scac_code,'')) = '') THEN 'TBCC' 
+				ELSE RTRIM(ll.scac_code)
+			   END AS scac,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode)) ELSE '' END AS airlinecode,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage)
+				WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+					+ CASE WHEN LEN(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff.voyage, '')) = 0 THEN '' ELSE '/' END
+					+ RTRIM(ISNULL(ff.voyage, ''))))
+			   END AS vesselflight,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+			   END AS vesselname,
+			   CASE WHEN vv.vesselname IN ('BY AIR', 'BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+				ELSE RTRIM(ff.voyage)
+			   END AS voyage,
+			   CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage) ELSE '' END AS flightnumber,
+			   RIGHT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),3) AS loadingport,
+			   ff.etd_date AS etddate,
+			   ff.eta_datedport AS etadate,
+			   RIGHT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),3) AS dischargeport,
+			   CASE WHEN ((vc.confirmdate IS NOT NULL OR mapp.Status IS NOT NULL) AND ff.atd_date IS NOT NULL AND ff.atd_date <![CDATA[<]]>= GETDATE()) THEN ff.atd_date ELSE NULL END AS atddate,
+			   CASE WHEN (ff.eta_datedport IS NOT NULL AND ff.eta_datedport <![CDATA[<]]>= GETDATE()) THEN ff.eta_datedport ELSE NULL END AS atadate,
+			   ff.cy_openingdate AS CYOpenDate,
+			   ff.cy_closingdate AS CYClosingDate,
+			   'Active' AS [status]
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'ITINERARIES'
+				AND ii.code = ff.vesvoyno
+				--AND ii.code2 = ff.voyage
+			INNER JOIN dbo.vessel vv (NOLOCK)
+				ON ff.vesselcode = vv.vesselcode
+			INNER JOIN dbo.liner ll (NOLOCK)
+				ON ff.linercode = ll.linercode
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ff.vesvoyno = soh.vesvoyno_3rd --3rd leg
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK) 
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap (NOLOCK)
+				ON airmap.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap.codetype = 'AIRLINE'
+				AND airmap.Status = 'Y'
+				AND ff.linercode = airmap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap (NOLOCK)
+				ON lportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap.codetype = 'PORTCODE'
+				AND lportcodemap.Status = 'Y'
+				AND ff.lportcode = lportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap (NOLOCK)
+				ON dportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap.codetype = 'PORTCODE'
+				AND dportcodemap.Status = 'Y'
+				AND ff.dportcode = dportcodemap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.codetype = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ITINERARIES_WITHOUT_EBOOKINGNO'
+				AND mapp.PartnerCode = ii.sysname
+			OUTER APPLY (
+				SELECT TOP 1 * FROM dbo.vesvoyconfirmclient vcc (NOLOCK)
+				WHERE vcc.customertype = 'C'
+				AND vcc.customercode IN (<include refid="PRINCIPAL_CODE"/>)
+				AND vcc.confirmstatus = 'Y'
+				AND ff.vesvoyno = vcc.vesvoyno
+				ORDER BY vcc.confirmdate DESC
+			) vc
+		WHERE ii.seq = 3
+		AND ii.id IN <include refid="list"/>
+	</select> 
+	<select id="findBillOfLadingConsignments" resultType="BillOfLadingConsignments">
+		SELECT DISTINCT
+			cc.azureid AS consignmentid,
+			ii.azureid AS billofladingid,
+			ss.azureid AS shipmentid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND	ii.codetype = 'BILLOFLADINGS'
+				AND ii.code = hbl.xbl_no
+				AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON hbl.housebl_no = soh.bl_no				
+			INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+				ON ii.dbname = cc.dbname
+				AND ii.sysname = cc.sysname
+				AND cc.codetype = 'CONSIGNMENTS'
+				AND soh.sono = cc.code
+				AND soh.so_seq = cc.seq
+				AND cc.code2 IN <include refid="companyCodelist"/>
+				AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ii.dbname = ss.dbname
+				AND ii.sysname = ss.sysname
+				AND ss.codetype = 'SHIPMENTS'
+				AND soh.sono = ss.code
+				AND soh.so_seq = ss.seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR cc.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[billofladingconsignments] zz (NOLOCK)
+			WHERE zz.consignmentid IS NOT NULL AND cc.azureid IS NOT NULL AND zz.consignmentid = cc.azureid
+			AND zz.billofladingid IS NOT NULL AND ii.azureid IS NOT NULL AND zz.billofladingid = ii.azureid
+			AND zz.shipmentid IS NOT NULL AND ss.azureid IS NOT NULL AND zz.shipmentid = ss.azureid
+		)
+	</select> 
+	<select id="findBillOfLadingItineraries" resultType="BillOfLadingItineraries">
+		SELECT DISTINCT
+			rr.azureid AS itineraryid,
+			ii.azureid AS billofladingid,
+			mm.azureid AS masterbillofladingid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'BILLOFLADINGS'
+				AND ii.code = hbl.xbl_no
+				AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON hbl.housebl_no = soh.bl_no
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ii.dbname = rr.dbname
+				AND ii.sysname = rr.sysname
+		        AND rr.codetype = 'ITINERARIES'
+				AND (
+					(rr.seq = 1 AND soh.vesvoyno = rr.code)
+					OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+					OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code)
+				)
+				AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ii.dbname = mm.dbname
+				AND ii.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[billofladingitineraries] zz (NOLOCK)
+			WHERE zz.itineraryid IS NOT NULL AND rr.azureid IS NOT NULL AND zz.itineraryid = rr.azureid
+			AND zz.billofladingid IS NOT NULL AND ii.azureid IS NOT NULL AND zz.billofladingid = ii.azureid
+			AND ((zz.masterbillofladingid IS NULL AND mm.azureid IS NULL) OR (zz.masterbillofladingid IS NOT NULL AND mm.azureid IS NOT NULL AND zz.masterbillofladingid = mm.azureid))
+		)
+    </select> 
+	<select id="findShipmentBillOfLadings" resultType="ShipmentBillOfLadings">
+		SELECT DISTINCT
+			ss.azureid AS shipmentid,
+			ii.azureid AS billofladingid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM <include refid="dbName"/> ss (NOLOCK)
+				INNER JOIN dbo.so_header soh (NOLOCK)
+					ON ss.dbname = #{db}
+					AND ss.sysname = #{sysname}
+					AND ss.codetype = 'SHIPMENTS'
+					AND ss.code = soh.sono
+					AND ss.seq = soh.so_seq
+					AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+				INNER JOIN dbo.housebl hbl (NOLOCK) 
+					ON soh.bl_no = hbl.housebl_no
+				INNER JOIN <include refid="dbName"/> ii (NOLOCK)
+					ON ss.dbname = ii.dbname
+					AND ss.sysname = ii.sysname
+					AND ii.codetype = 'BILLOFLADINGS'
+					AND hbl.xbl_no = ii.code
+					AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			ss.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[shipmentbillofladings] zz (NOLOCK)
+			WHERE zz.shipmentid IS NOT NULL AND ss.azureid IS NOT NULL AND zz.shipmentid = ss.azureid
+			AND zz.billofladingid IS NOT NULL AND ii.azureid IS NOT NULL AND zz.billofladingid = ii.azureid
+		)
+	</select> 
+	<select id="findBillOfLadingShipmentLoads" resultType="BillOfLadingShipmentLoads">
+		SELECT DISTINCT
+			ii.azureid AS billofladingid,
+			sl.azureid AS shipmentloadid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			nn.azureid AS containerid,
+			oo.azureid AS consolidationid,
+			mm.azureid AS masterbillofladingid,
+			CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'BILLOFLADINGS'
+				AND ii.code = hbl.xbl_no
+				AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON hbl.housebl_no = soh.bl_no
+			INNER JOIN <include refid="dbName"/> sl (NOLOCK)
+				ON ii.dbname = sl.dbname
+				AND ii.sysname = sl.sysname
+				AND sl.codetype = 'SHIPMENTLOADS'
+				AND soh.sono = sl.code
+				AND soh.so_seq = sl.seq
+				AND sl.isetltoazure IS NOT NULL AND sl.isetltoazure = 'Y'
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON sl.code2 = lpd.lp_no
+				AND soh.sono = lpd.sono
+				AND soh.so_seq = lpd.so_seq
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON lpd.lp_no = lph.lp_no
+			LEFT JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON ii.dbname = nn.dbname
+				AND ii.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+				AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = nn.code2)
+				AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> oo (NOLOCK)
+				ON 1=1
+				AND soh.movement <![CDATA[ <> ]]> 'CY/CY' --consolidation when CFS shipment only
+				AND ii.dbname = oo.dbname
+				AND ii.sysname = oo.sysname
+				AND oo.codetype = 'CONSOLIDATIONS'
+				AND lph.lp_no = oo.code
+				AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = oo.code2)
+				AND oo.isetltoazure IS NOT NULL AND oo.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ii.dbname = mm.dbname
+				AND ii.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR sl.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR oo.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR sl.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR oo.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[billofladingshipmentloads] zz (NOLOCK)
+			WHERE zz.shipmentloadid IS NOT NULL AND sl.azureid IS NOT NULL AND zz.shipmentloadid = sl.azureid
+			AND zz.billofladingid IS NOT NULL AND ii.azureid IS NOT NULL AND zz.billofladingid = ii.azureid
+			AND ((zz.containerid IS NULL AND nn.azureid IS NULL) OR (zz.containerid IS NOT NULL AND nn.azureid IS NOT NULL AND zz.containerid = nn.azureid))
+			AND ((zz.consolidationid IS NULL AND oo.azureid IS NULL) OR (zz.consolidationid IS NOT NULL AND oo.azureid IS NOT NULL AND zz.consolidationid = oo.azureid))
+			AND ((zz.masterbillofladingid IS NULL AND mm.azureid IS NULL) OR (zz.masterbillofladingid IS NOT NULL AND mm.azureid IS NOT NULL AND zz.masterbillofladingid = mm.azureid))
+			AND zz.isfcl = CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END
+		)
+	</select> 
+	<select id="findConsignmentItineraries" resultType="ConsignmentItineraries">
+		SELECT DISTINCT
+			cc.azureid AS consignmentid,
+			rr.azureid AS itineraryid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			ss.azureid AS shipmentid,
+			mm.azureid AS masterbillid,
+			CASE WHEN rr.Id IS NOT NULL THEN rr.seq ELSE 1 END AS sequence
+		FROM <include refid="dbName"/> ss (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+				ON ss.dbname = cc.dbname
+				AND ss.sysname = cc.sysname
+		        AND cc.codetype = 'CONSIGNMENTS'
+		        AND soh.sono = cc.code
+		        AND soh.so_seq = cc.seq
+				AND cc.code2 IN <include refid="companyCodelist"/>
+				AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ss.dbname = rr.dbname
+				AND ss.sysname = rr.sysname
+		        AND rr.codetype = 'ITINERARIES'
+				AND (
+					(rr.seq = 1 AND soh.vesvoyno = rr.code)
+					OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+					OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code)
+				) AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ss.dbname = mm.dbname
+				AND ss.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			cc.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[consignmentitineraries] zz (NOLOCK)
+			WHERE zz.shipmentid IS NOT NULL AND ss.azureid IS NOT NULL AND zz.shipmentid = ss.azureid
+			AND zz.consignmentid IS NOT NULL AND cc.azureid IS NOT NULL AND zz.consignmentid = cc.azureid
+			AND zz.itineraryid IS NOT NULL AND rr.azureid IS NOT NULL AND zz.itineraryid = rr.azureid
+			AND ((zz.masterbillid IS NULL AND mm.azureid IS NULL) OR (zz.masterbillid IS NOT NULL AND mm.azureid IS NOT NULL AND zz.masterbillid = mm.azureid))
+			AND zz.sequence = ISNULL(rr.seq, 1)
+		)
+	</select> 
+	<select id="findContainerItineraries" resultType="ContainerItineraries">
+		SELECT DISTINCT
+			rr.azureid AS itineraryid,
+			nn.azureid AS containerid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM <include refid="dbName"/> ss (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+			INNER JOIN (
+				SELECT tlpd.lp_no, tlpd.sono, tlpd.so_seq FROM dbo.lp_detail AS tlpd(NOLOCK) GROUP BY tlpd.lp_no, tlpd.sono, tlpd.so_seq
+			) lpd ON soh.sono = lpd.sono
+				AND soh.so_seq = lpd.so_seq
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON lpd.lp_no = lph.lp_no
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ss.dbname = rr.dbname
+				AND ss.sysname = rr.sysname
+		        AND rr.codetype = 'ITINERARIES'
+				AND (
+					(rr.seq = 1 AND soh.vesvoyno = rr.code)
+					OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+					OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code)
+				) AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON ss.dbname = nn.dbname
+				AND ss.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+				AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = nn.code2)
+				AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			rr.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[containeritineraries] zz (NOLOCK)
+			WHERE zz.containerid IS NOT NULL AND nn.azureid IS NOT NULL AND zz.containerid = nn.azureid
+			AND zz.itineraryid IS NOT NULL AND rr.azureid IS NOT NULL AND zz.itineraryid = rr.azureid
+		)
+	</select> 
+	<select id="findMasterBillItineraries" resultType="MasterBillItineraries">
+		SELECT DISTINCT
+			rr.azureid AS itineraryid,
+			mm.azureid AS masterbillofladingid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM <include refid="dbName"/> ss (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ss.dbname = rr.dbname
+				AND ss.sysname = rr.sysname
+		        AND rr.codetype = 'ITINERARIES'
+				AND (
+					(rr.seq = 1 AND soh.vesvoyno = rr.code)
+					OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+					OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code)
+				) AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ss.dbname = mm.dbname
+				AND ss.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			rr.lastupdate >= <include refid="lastUpdatedDay"/> 
+			OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+			OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) AND NOT EXISTS (
+			SELECT 1
+			FROM <include refid="azureDB"/>.[dbo].[masterbillitineraries] zz (NOLOCK)
+			WHERE zz.masterbillofladingid IS NOT NULL AND mm.azureid IS NOT NULL AND zz.masterbillofladingid = mm.azureid
+			AND zz.itineraryid IS NOT NULL AND rr.azureid IS NOT NULL AND zz.itineraryid = rr.azureid
+		)
+    </select>
+    
+    <select id="findDeleteBillOfLadingConsignments" resultType="BillOfLadingConsignments">
+		SELECT DISTINCT
+			d.consignmentid AS consignmentid,
+			d.billofladingid AS billofladingid,
+			d.shipmentid AS shipmentid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23),GETDATE(),126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23),GETDATE(),126) AS updateddate
+		FROM
+		(
+			SELECT DISTINCT
+				   cc.azureid AS consignmentid,
+				   ii.azureid AS billofladingid,
+				   ss.azureid AS shipmentid
+			FROM <include refid="azureDB"/>.[dbo].[billofladingconsignments] mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> ii (NOLOCK)
+					ON ii.dbname = #{db}
+					AND ii.sysname = #{sysname}
+					AND ii.codetype = 'BILLOFLADINGS'
+					AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+					AND mstr.billofladingid = ii.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> cc (NOLOCK)
+					ON ii.dbname = cc.dbname
+				    AND ii.sysname = cc.sysname
+					AND cc.codetype = 'CONSIGNMENTS'
+					AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+					AND cc.code2 IN <include refid="companyCodelist"/> --Origin Consignment
+					AND mstr.consignmentid = cc.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> ss (NOLOCK)
+					ON ii.dbname = ss.dbname
+				    AND ii.sysname = ss.sysname
+					AND ss.codetype = 'SHIPMENTS'
+					AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+					AND mstr.ShipmentId = ss.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR cc.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			) 
+			EXCEPT
+			SELECT DISTINCT
+				    cc.azureid AS consignmentid,
+				    ii.azureid AS billofladingid,
+				    ss.azureid AS shipmentid
+				    FROM <include refid="dbName"/> AS ii(NOLOCK)
+					INNER JOIN dbo.housebl hbl (NOLOCK)
+						ON ii.dbname = #{db}
+						AND ii.sysname = #{sysname}
+						AND ii.codetype = 'BILLOFLADINGS'
+						AND ii.code = hbl.xbl_no
+						AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+					INNER JOIN dbo.so_header soh (NOLOCK)
+						ON hbl.housebl_no = soh.bl_no
+					INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+						ON ii.dbname = cc.dbname
+						AND ii.sysname = cc.sysname
+			            AND cc.codetype = 'CONSIGNMENTS'
+			            AND soh.sono = cc.code
+			            AND soh.so_seq = cc.seq
+						AND cc.code2 IN <include refid="companyCodelist"/>
+						AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+					INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+						ON ii.dbname = ss.dbname
+						AND ii.sysname = ss.sysname
+						AND ss.codetype = 'SHIPMENTS'
+						AND soh.sono = ss.code
+						AND soh.so_seq = ss.seq
+						AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+				WHERE 1=1
+				AND (
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR cc.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				)
+			) AS d
+	</select> 
+	<select id="findDeleteBillOfLadingItineraries" resultType="BillOfLadingItineraries">
+		SELECT DISTINCT
+			d.itineraryid AS itineraryid,
+			d.billofladingid AS billofladingid,
+			d.masterbillofladingid AS masterbillofladingid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM
+		(
+			SELECT DISTINCT
+				   rr.azureid AS itineraryid,
+				   ii.azureid AS billofladingid,
+				   mm.azureid AS masterbillofladingid
+			FROM <include refid="azureDB"/>.[dbo].[billofladingitineraries] AS mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> AS ii (NOLOCK)
+					ON ii.dbname = #{db}
+					AND ii.sysname = #{sysname}
+					AND ii.codetype = 'BILLOFLADINGS'
+					AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+					AND mstr.billofladingid = ii.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> AS rr (NOLOCK)
+					ON ii.dbname = rr.dbname
+				    AND ii.sysname = rr.sysname
+					AND rr.codetype = 'ITINERARIES'
+					AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+					AND mstr.ItineraryId = rr.azureid
+				LEFT JOIN <include refid="dbName"/> AS mm (NOLOCK)
+					ON ii.dbname = mm.dbname
+				    AND ii.sysname = mm.sysname
+					AND mm.codetype = 'MASTERBILLS'
+					AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+					AND mstr.MasterBillOfLadingId = mm.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.id is null
+			) 
+			EXCEPT
+			SELECT DISTINCT
+				    rr.azureid AS itineraryid,
+				    ii.azureid AS billofladingid,
+				    mm.azureid AS masterbillofladingid
+				    FROM <include refid="dbName"/> AS ii (NOLOCK)
+					INNER JOIN dbo.housebl hbl (NOLOCK)
+						ON ii.dbname = #{db}
+						AND ii.sysname = #{sysname}
+						AND ii.codetype = 'BILLOFLADINGS'
+						AND ii.code = hbl.xbl_no
+						AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+					INNER JOIN dbo.so_header AS soh (NOLOCK)
+						ON hbl.housebl_no = soh.bl_no
+					INNER JOIN <include refid="dbName"/> AS rr (NOLOCK)
+						ON ii.dbname = rr.dbname
+						AND ii.sysname = rr.sysname
+					    AND rr.codetype = 'ITINERARIES'
+					    AND ((rr.seq = 1 AND soh.vesvoyno = rr.code)
+							OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+							OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code))
+					    AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+					LEFT JOIN <include refid="dbName"/> AS mm (NOLOCK)
+						ON ii.dbname = mm.dbname
+						AND ii.sysname = mm.sysname
+						AND mm.codetype = 'MASTERBILLS'
+						AND soh.ocean_bl_no = mm.code
+						AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+				WHERE (
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.id IS NULL
+				)
+			) AS d
+	</select> 
+	<select id="findDeleteShipmentBillOfLadings" resultType="ShipmentBillOfLadings">
+		SELECT DISTINCT
+			d.shipmentid AS shipmentid,
+			d.billofladingid AS billofladingid,
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate
+		FROM
+		(
+			SELECT DISTINCT
+				   ss.azureid AS shipmentid,
+				   ii.azureid AS billofladingid
+			FROM <include refid="azureDB"/>.[dbo].[shipmentbillofladings] mstr (NOLOCK)
+			INNER REMOTE JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+				AND mstr.ShipmentId = ss.azureid
+			INNER REMOTE JOIN <include refid="dbName"/> ii (NOLOCK)
+				ON ss.dbname = ii.dbname
+				AND ss.sysname = ii.sysname
+				AND ii.codetype = 'BILLOFLADINGS'
+				AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+				AND mstr.billofladingid = ii.azureid
+		WHERE 1=1
+		AND (
+			--Retrieve data for 1 or 2 days - configurable
+			ss.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.lastupdate >= <include refid="lastUpdatedDay"/>
+			OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+		) 
+		EXCEPT 
+			SELECT DISTINCT
+				   ss.azureid AS shipmentid,
+				   ii.azureid AS billofladingid
+				FROM <include refid="dbName"/> ss (NOLOCK)
+				INNER JOIN dbo.so_header soh (NOLOCK)
+					ON ss.dbname = #{db}
+					AND ss.sysname = #{sysname}
+					AND ss.codetype = 'SHIPMENTS'
+					AND ss.code = soh.sono
+					AND ss.seq = soh.so_seq
+					AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+				INNER JOIN dbo.housebl hbl (NOLOCK) 
+					ON soh.bl_no = hbl.housebl_no
+				INNER JOIN <include refid="dbName"/> ii (NOLOCK)
+					ON ss.dbname = ii.dbname
+					AND ss.sysname = ii.sysname
+					AND ii.codetype = 'BILLOFLADINGS'
+					AND hbl.xbl_no = ii.code
+					AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+			WHERE(
+				--Retrieve data for 1 or 2 days - configurable
+				ss.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			)
+		) AS d
+	</select> 
+	<select id="findDeleteBillOfLadingShipmentLoads" resultType="BillOfLadingShipmentLoads">
+		SELECT DISTINCT
+			d.billofladingid AS billofladingid,
+			   d.shipmentloadid AS shipmentloadid,
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS updateddate,
+			   d.containerid AS containerid,
+			   d.consolidationid AS consolidationid,
+			   d.masterbillofladingid AS masterbillofladingid,
+			   d.isfcl AS isfcl
+		FROM
+		(
+			SELECT DISTINCT
+				   ii.azureid AS billofladingid,
+				   sl.azureid AS shipmentloadid,
+				   nn.azureid AS containerid,
+				   oo.azureid AS consolidationid,
+				   mm.azureid AS masterbillofladingid,
+				   CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl
+			FROM <include refid="azureDB"/>.[dbo].[billofladingshipmentloads] mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> ii (NOLOCK)
+					ON ii.dbname = #{db}
+					AND ii.sysname = #{sysname}
+					AND ii.codetype = 'BILLOFLADINGS'
+					AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+					AND mstr.billofladingid = ii.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> sl (NOLOCK)
+					ON ii.dbname = sl.dbname
+				    AND ii.sysname = sl.sysname
+					AND sl.codetype = 'SHIPMENTLOADS'
+					AND sl.isetltoazure IS NOT NULL AND sl.isetltoazure = 'Y'
+					AND mstr.ShipmentLoadId = sl.azureid
+				INNER REMOTE JOIN dbo.so_header soh (NOLOCK)
+					ON sl.code = soh.sono
+					AND sl.seq = soh.so_seq
+				LEFT JOIN <include refid="dbName"/> nn (NOLOCK)
+					ON ii.dbname = nn.dbname
+				    AND ii.sysname = nn.sysname
+					AND nn.codetype = 'CONTAINERS'
+					AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+					AND mstr.ContainerId = nn.azureid
+				LEFT JOIN <include refid="dbName"/> oo (NOLOCK)
+					ON ii.dbname = oo.dbname
+				    AND ii.sysname = oo.sysname
+					AND oo.codetype = 'CONSOLIDATIONS'
+					AND oo.isetltoazure IS NOT NULL AND oo.isetltoazure = 'Y'
+					AND mstr.ConsolidationId = oo.azureid
+				LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+					ON ii.dbname = mm.dbname
+				    AND ii.sysname = mm.sysname
+					AND mm.codetype = 'MASTERBILLS'
+					AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+					AND mstr.MasterBillOfLadingId = mm.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR sl.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR oo.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR sl.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR oo.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.id is null
+				OR oo.id is null
+				OR mm.id is null
+			) 
+			EXCEPT			
+			SELECT DISTINCT
+			   ii.azureid AS billofladingid,
+			   sl.azureid AS shipmentloadid,
+			   nn.azureid AS containerid,
+			   oo.azureid AS consolidationid,
+			   mm.azureid AS masterbillofladingid,
+			   CASE WHEN soh.movement LIKE 'CY/%' THEN 1 ELSE 0 END AS isfcl
+			   FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN dbo.housebl hbl (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'BILLOFLADINGS'
+				AND ii.code = hbl.xbl_no
+				AND ii.isetltoazure IS NOT NULL AND ii.isetltoazure = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON hbl.housebl_no = soh.bl_no
+			INNER JOIN <include refid="dbName"/> sl (NOLOCK)
+				ON ii.dbname = sl.dbname
+				AND ii.sysname = sl.sysname
+				AND sl.codetype = 'SHIPMENTLOADS'
+				AND soh.sono = sl.code
+				AND soh.so_seq = sl.seq
+				AND sl.isetltoazure IS NOT NULL AND sl.isetltoazure = 'Y'
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON sl.code2 = lpd.lp_no
+				AND soh.sono = lpd.sono
+				AND soh.so_seq = lpd.so_seq
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON lpd.lp_no = lph.lp_no
+			LEFT JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON ii.dbname = nn.dbname
+				AND ii.sysname = nn.sysname
+				AND nn.codetype = 'CONTAINERS'
+				AND lph.lp_no = nn.code
+				AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = nn.code2)
+				AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> oo (NOLOCK)
+				ON 1=1
+				AND soh.movement <![CDATA[ <> ]]> 'CY/CY' --consolidation when CFS shipment only
+				AND ii.dbname = oo.dbname
+				AND ii.sysname = oo.sysname
+				AND oo.codetype = 'CONSOLIDATIONS'
+				AND lph.lp_no = oo.code
+				AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = oo.code2)
+				AND oo.isetltoazure IS NOT NULL AND oo.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ii.dbname = mm.dbname
+				AND ii.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+			WHERE(
+				--Retrieve data for 1 or 2 days - configurable
+				ii.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR sl.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR oo.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ii.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR sl.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR oo.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.id is null
+				OR oo.id is null
+				OR mm.id is null
+			)
+		) AS d
+	</select> 
+	<select id="findDeleteConsignmentItineraries" resultType="ConsignmentItineraries">
+		SELECT DISTINCT
+			   d.consignmentid AS consignmentid,
+			   d.itineraryid AS itineraryid,
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS updateddate,
+			   d.shipmentid AS shipmentid,
+			   d.masterbillid AS masterbillid,
+			   d.sequence AS sequence
+		FROM
+		(
+			SELECT DISTINCT
+				   cc.azureid AS consignmentid,
+				   rr.azureid AS itineraryid,
+				   ss.azureid AS shipmentid,
+				   mm.azureid AS masterbillid,
+				   ISNULL(rr.seq,1) AS sequence
+			FROM <include refid="azureDB"/>.[dbo].[consignmentitineraries] mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> cc (NOLOCK)
+					ON cc.dbname = #{db}
+					AND cc.sysname = #{sysname}
+					AND cc.codetype = 'CONSIGNMENTS'
+					AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+					AND cc.code2 IN <include refid="companyCodelist"/> --Origin Consignment
+					AND mstr.consignmentid = cc.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> rr (NOLOCK)
+					ON cc.dbname = rr.dbname
+				    AND cc.sysname = rr.sysname
+					AND rr.codetype = 'ITINERARIES'
+					AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+					AND mstr.ItineraryId = rr.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> ss (NOLOCK)
+					ON cc.dbname = ss.dbname
+				    AND cc.sysname = ss.sysname
+					AND ss.codetype = 'SHIPMENTS'
+					AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+					AND mstr.ShipmentId = ss.azureid
+				LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+					ON cc.dbname = mm.dbname
+				    AND cc.sysname = mm.sysname
+					AND mm.codetype = 'MASTERBILLS'
+					AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+					AND mstr.MasterBillId = mm.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				cc.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.id is null
+			) 
+			EXCEPT
+			SELECT DISTINCT
+				   cc.azureid AS consignmentid,
+				   rr.azureid AS itineraryid,
+				   ss.azureid AS shipmentid,
+				   mm.azureid AS masterbillid,
+				   CASE WHEN rr.Id IS NOT NULL THEN rr.seq ELSE 1 END AS sequence
+			FROM <include refid="dbName"/> ss (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> cc (NOLOCK)
+				ON ss.dbname = cc.dbname
+				AND ss.sysname = cc.sysname
+	            AND cc.codetype = 'CONSIGNMENTS'
+	            AND soh.sono = cc.code
+	            AND soh.so_seq = cc.seq
+				AND cc.code2 IN <include refid="companyCodelist"/>
+				AND cc.isetltoazure IS NOT NULL AND cc.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ss.dbname = rr.dbname
+				AND ss.sysname = rr.sysname
+				AND rr.codetype = 'ITINERARIES'
+				AND ((rr.seq = 1 AND soh.vesvoyno = rr.code)					 
+					OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+					OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code))
+				AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ss.dbname = mm.dbname
+				AND ss.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+		WHERE (
+				--Retrieve data for 1 or 2 days - configurable
+				cc.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR cc.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR ss.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.id is null
+			)
+		) AS d
+	</select> 
+	<select id="findDeleteContainerItineraries" resultType="ContainerItineraries">
+		SELECT DISTINCT
+			   d.itineraryid AS itineraryid,
+			   d.containerid AS containerid,
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS updateddate
+		FROM
+		(
+			SELECT DISTINCT
+				   rr.azureid AS itineraryid,
+				   nn.azureid AS containerid
+			FROM <include refid="azureDB"/>.[dbo].[containeritineraries] mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> rr (NOLOCK)
+					ON rr.dbname = #{db}
+					AND rr.sysname = #{sysname}
+					AND rr.codetype = 'ITINERARIES'
+					AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+					AND mstr.ItineraryId = rr.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> nn (NOLOCK)
+					ON rr.dbname = nn.dbname
+				    AND rr.sysname = nn.sysname
+					AND nn.codetype = 'CONTAINERS'
+					AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+					AND mstr.ContainerId = nn.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				rr.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			) 
+			EXCEPT
+			SELECT DISTINCT
+				   rr.azureid AS itineraryid,
+				   nn.azureid AS containerid
+				   FROM <include refid="dbName"/> ss (NOLOCK)
+				   INNER JOIN dbo.so_header soh (NOLOCK)
+						ON ss.dbname = #{db}
+						AND ss.sysname = #{sysname}
+						AND ss.codetype = 'SHIPMENTS'
+						AND ss.code = soh.sono
+						AND ss.seq = soh.so_seq
+						AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+				   INNER JOIN (
+						SELECT tlpd.lp_no, tlpd.sono, tlpd.so_seq FROM dbo.lp_detail AS tlpd(NOLOCK) GROUP BY tlpd.lp_no, tlpd.sono, tlpd.so_seq
+				   ) lpd ON soh.sono = lpd.sono
+						AND soh.so_seq = lpd.so_seq
+				   INNER JOIN dbo.lp_header lph (NOLOCK)
+						ON lpd.lp_no = lph.lp_no
+				   INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+						ON ss.dbname = rr.dbname
+						AND ss.sysname = rr.sysname
+				   		AND rr.codetype = 'ITINERARIES'
+				   		AND ((rr.seq = 1 AND soh.vesvoyno = rr.code)									 
+						OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+						OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code))
+				   		AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+				   INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+						ON ss.dbname = nn.dbname
+						AND ss.sysname = nn.sysname
+						AND nn.codetype = 'CONTAINERS'
+						AND lph.lp_no = nn.code
+						AND (lph.containerno IS NOT NULL AND lph.containerno <![CDATA[ <> ]]> '' AND lph.containerno = nn.code2)
+						AND nn.isetltoazure IS NOT NULL AND nn.isetltoazure = 'Y'
+			WHERE(
+				--Retrieve data for 1 or 2 days - configurable
+				rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR nn.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR nn.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+				)
+		) AS d
+	</select> 
+	<select id="findDeleteMasterBillItineraries" resultType="MasterBillItineraries">
+		SELECT DISTINCT
+			   d.itineraryid AS itineraryid,
+			   d.masterbillofladingid AS masterbillofladingid,
+			   'FreightSystem' AS createdby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS createddate,
+			   'FreightSystem' AS updatedby,
+			   CONVERT(VARCHAR(23),GETDATE(),126) AS updateddate
+		FROM
+		(
+			SELECT DISTINCT
+				   rr.azureid AS itineraryid,
+				   mm.azureid AS masterbillofladingid
+			FROM <include refid="azureDB"/>.[dbo].[masterbillitineraries] mstr (NOLOCK)
+				INNER REMOTE JOIN <include refid="dbName"/> rr (NOLOCK)
+					ON rr.dbname = #{db}
+					AND rr.sysname = #{sysname}
+					AND rr.codetype = 'ITINERARIES'
+					AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+					AND mstr.ItineraryId = rr.azureid
+				INNER REMOTE JOIN <include refid="dbName"/> mm (NOLOCK)
+					ON rr.dbname = mm.dbname
+				    AND rr.sysname = mm.sysname
+					AND mm.codetype = 'MASTERBILLS'
+					AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+					AND mstr.MasterBillOfLadingId = mm.azureid
+			WHERE 1=1
+			AND (
+				--Retrieve data for 1 or 2 days - configurable
+				rr.lastupdate >= <include refid="lastUpdatedDay"/> 
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			) 
+			EXCEPT
+			SELECT DISTINCT
+				   rr.azureid AS itineraryid,
+				   mm.azureid AS masterbillofladingid
+			FROM <include refid="dbName"/> ss (NOLOCK)
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.dbname = #{db}
+				AND ss.sysname = #{sysname}
+				AND ss.codetype = 'SHIPMENTS'
+				AND ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+				AND ss.isetltoazure IS NOT NULL AND ss.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> rr (NOLOCK)
+				ON ss.dbname = rr.dbname
+				AND ss.sysname = rr.sysname
+				AND rr.codetype = 'ITINERARIES'
+				AND ((rr.seq = 1 AND soh.vesvoyno = rr.code)										 
+				OR (rr.seq = 2 AND soh.vesvoyno_leg = rr.code)
+				OR (rr.seq = 3 AND soh.vesvoyno_3rd = rr.code))
+				AND rr.isetltoazure IS NOT NULL AND rr.isetltoazure = 'Y'
+			INNER JOIN <include refid="dbName"/> mm (NOLOCK)
+				ON ss.dbname = mm.dbname
+				AND ss.sysname = mm.sysname
+				AND mm.codetype = 'MASTERBILLS'
+				AND soh.ocean_bl_no = mm.code
+				AND mm.isetltoazure IS NOT NULL AND mm.isetltoazure = 'Y'
+			WHERE(
+				--Retrieve data for 1 or 2 days - configurable
+				rr.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR mm.lastupdate >= <include refid="lastUpdatedDay"/>
+				OR rr.AzureLastupdate >= <include refid="lastUpdatedDay"/> 
+				OR mm.AzureLastupdate >= <include refid="lastUpdatedDay"/>
+			)
+		) AS d
+	</select> 
+	
+	<select id="findActivities" resultType="Activities">
+	SELECT act.id AS id, act.createdby AS createdby, act.createddate AS createddate, act.updatedby AS updatedby, act.updateddate AS updateddate, act.activitycode AS activitycode,
+	 act.shipmentid AS shipmentid, act.containerid AS containerid, act.consignmentid AS consignmentid, act.activitytype AS activitytype, act.activitydescription AS activitydescription,
+	 act.activitydate AS activitydate, RTRIM(act.location) AS location, act.remark AS remark, act.resolved AS resolved, act.resolution AS resolution, act.resolutiondate AS resolutiondate FROM (
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			ss.azureid AS shipmentid,
+			NULL AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Booking confirmed' AS activitydescription,
+			CASE WHEN (mapp.Status IS NOT NULL AND soh.ebookingno IS NULL) THEN CONVERT(VARCHAR(23), ISNULL(soh.bookingdate, soh.createdate), 126) ELSE CONVERT(VARCHAR(23), soh.bookingdate, 126) END AS activitydate,
+			soh.por_name AS location,
+			CASE WHEN (mapp.Status IS NOT NULL AND soh.ebookingno IS NULL) THEN RTRIM(ISNULL(soh.ShipperRefNo, '')) ELSE '' END AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = ss.dbname
+				AND eid.sysname = ss.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND ss.codetype = 'SHIPMENTS'
+				AND eid.code = '2005'
+				AND eid.code2 = 'SM'
+				AND eid.seq = ss.id  --ediSONETDId.SHIPMENTS.id
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.CodeType = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ACTIVITIES_2005_WITHOUT_EBOOKINGNO'
+				AND mapp.PartnerCode = eid.sysname
+		WHERE ((mapp.Status IS NOT NULL AND soh.ebookingno IS NULL) OR ((mapp.Status IS NULL OR soh.ebookingno IS NOT NULL) AND soh.bookingdate IS NOT NULL))
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Cargo handover at origin
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			ss.azureid AS shipmentid,
+			NULL AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Cargo handover at origin' AS activitydescription,
+			CONVERT(VARCHAR(23), cr.indatetime, 126) AS activitydate,
+			soh.por_name AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = ss.dbname
+				AND eid.sysname = ss.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND ss.codetype = 'SHIPMENTS'
+				AND eid.code = '2014'
+				AND eid.code2 = 'SM'
+				AND eid.seq = ss.id  --ediSONETDId.SHIPMENTS.id
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+			CROSS APPLY (
+				SELECT MIN(indatetime) AS indatetime FROM dbo.cargoreceive cr (NOLOCK)
+				WHERE soh.sono = cr.sono
+				AND soh.so_seq = cr.so_seq
+			) cr
+		WHERE cr.indatetime IS NOT NULL
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Shipment handover to consignee
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			ss.azureid AS shipmentid,
+			NULL AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Shipment handover to consignee' AS activitydescription,
+			CONVERT(VARCHAR(23), soh.eta_finaldate, 126) AS activitydate,
+			soh.pod_name AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = ss.dbname
+				AND eid.sysname = ss.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND ss.codetype = 'SHIPMENTS'
+				AND eid.code = '2054'
+				AND eid.code2 = 'SM'
+				AND eid.seq = ss.id  --ediSONETDId.SHIPMENTS.id
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = 'SHIPMENT_PORTAL'
+				AND mapp.CodeType = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ACTIVITIES_2054_SKIP'
+				AND mapp.PartnerCode = eid.sysname
+		WHERE mapp.Status IS NULL
+			AND soh.eta_finaldate IS NOT NULL 
+			AND soh.eta_finaldate <![CDATA[ < ]]>= GETDATE()
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Container - Gate In
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Container - Gate In' AS activitydescription,
+			CONVERT(VARCHAR(23), lph.CYDeliveryDate, 126) AS activitydate,
+			polcity.CityName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3001'
+				AND eid.code2 = 'CM'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON nn.code = lph.lp_no
+				AND nn.code2 = lph.containerno
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK)
+				ON lph.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city polcity (NOLOCK)
+				ON ff.lportcode = polcity.citycode
+		WHERE lph.CYDeliveryDate IS NOT NULL
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Container - Vessel Load
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Container - Vessel Load' AS activitydescription,
+			CONVERT(VARCHAR(23), e.EventDateTime, 126) AS activitydate,
+			e.EventLocationName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3002'
+				AND eid.code2 = 'CM'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="containerStatusEventLog"/> elogs (NOLOCK)
+				ON eid.dbname = elogs.DB
+				AND nn.code = elogs.LPNO
+				AND nn.code2 = elogs.EquipmentIdentifier
+			INNER JOIN <include refid="containerStatusLog"/> e (NOLOCK)
+				ON elogs.BookingNumber = e.BookingNumber
+				AND elogs.EquipmentIdentifier = e.EquipmentIdentifier
+				AND e.EventCode = 'AE'
+				AND e.PortOfLoadingCode = e.EventLocationCode
+			CROSS APPLY (
+				SELECT MAX(tmpe.EventSeq) AS EventSeq FROM <include refid="containerStatusLog"/> tmpe (NOLOCK)
+				WHERE tmpe.DocumentDateTime >= e.DocumentDateTime
+				AND e.BookingNumber = tmpe.BookingNumber
+				AND e.EquipmentIdentifier = tmpe.EquipmentIdentifier
+				AND e.EventCode = tmpe.EventCode
+				AND e.EventLocationCode = tmpe.EventLocationCode
+			) e2
+		WHERE e.EventDateTime IS NOT NULL
+			AND e.EventSeq = e2.EventSeq
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Container - Vessel Unload
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Container - Vessel Unload' AS activitydescription,
+			CONVERT(VARCHAR(23), e.EventDateTime, 126) AS activitydate,
+			e.EventLocationName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3005'
+				AND eid.code2 = 'CM'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="containerStatusEventLog"/> elogs (NOLOCK)
+				ON eid.dbname = elogs.DB
+				AND nn.code = elogs.LPNO
+				AND nn.code2 = elogs.EquipmentIdentifier
+			INNER JOIN <include refid="containerStatusLog"/> e (NOLOCK)
+				ON elogs.BookingNumber = e.BookingNumber
+				AND elogs.EquipmentIdentifier = e.EquipmentIdentifier
+				AND e.EventCode = 'UV'
+				AND e.PortOfDischargeCode = e.EventLocationCode
+			CROSS APPLY (
+				SELECT MAX(tmpe.EventSeq) AS EventSeq FROM <include refid="containerStatusLog"/> tmpe (NOLOCK)
+				WHERE tmpe.DocumentDateTime >= e.DocumentDateTime
+				AND e.BookingNumber = tmpe.BookingNumber
+				AND e.EquipmentIdentifier = tmpe.EquipmentIdentifier
+				AND e.EventCode = tmpe.EventCode
+				AND e.EventLocationCode = tmpe.EventLocationCode
+			) e2
+		WHERE e.EventDateTime IS NOT NULL
+			AND e.EventSeq = e2.EventSeq
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Container - Gate Out
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'Container - Gate Out' AS activitydescription,
+			CONVERT(VARCHAR(23), e.EventDateTime, 126) AS activitydate,
+			e.EventLocationName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3006'
+				AND eid.code2 = 'CM'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN <include refid="containerStatusEventLog"/> elogs (NOLOCK)
+				ON eid.dbname = elogs.DB
+				AND nn.code = elogs.LPNO
+				AND nn.code2 = elogs.EquipmentIdentifier
+			INNER JOIN <include refid="containerStatusLog"/> e (NOLOCK)
+				ON elogs.BookingNumber = e.BookingNumber
+				AND elogs.EquipmentIdentifier = e.EquipmentIdentifier
+				AND e.EventCode = 'OA'
+				AND e.PortOfDischargeCode = e.EventLocationCode
+			CROSS APPLY (
+				SELECT MAX(tmpe.EventSeq) AS EventSeq FROM <include refid="containerStatusLog"/> tmpe (NOLOCK)
+				WHERE tmpe.DocumentDateTime >= e.DocumentDateTime
+				AND e.BookingNumber = tmpe.BookingNumber
+				AND e.EquipmentIdentifier = tmpe.EquipmentIdentifier
+				AND e.EventCode = tmpe.EventCode
+				AND e.EventLocationCode = tmpe.EventLocationCode
+			) e2
+		WHERE e.EventDateTime IS NOT NULL
+			AND e.EventSeq = e2.EventSeq
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Shipping order release (1074)
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			ss.azureid AS shipmentid,
+			NULL AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'SO Released Date' AS activitydescription,
+			CONVERT(VARCHAR(23), soh.bookingreleaseddate, 126) AS activitydate,
+			soh.por_name AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> ss (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = ss.dbname
+				AND eid.sysname = ss.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND ss.codetype = 'SHIPMENTS'
+				AND eid.code = '1074'
+				AND eid.code2 = 'SA'
+				AND eid.seq = ss.id  --ediSONETDId.SHIPMENTS.id
+				AND ISNULL(ss.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON ss.code = soh.sono
+				AND ss.seq = soh.so_seq
+		WHERE soh.bookingreleaseddate IS NOT NULL 
+			AND soh.bookingreleaseddate <![CDATA[ < ]]>= GETDATE()
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Vessel cut-off date for CFS (3050)
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'CFS Closing Date' AS activitydescription,
+			CONVERT(VARCHAR(23), ff.cfs_closingdate, 126) AS activitydate,
+			polcity.CityName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3050'
+				AND eid.code2 = 'CA'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON nn.code = lph.lp_no
+				AND nn.code2 = lph.containerno
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON lph.lp_no = lpd.lp_no
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON lpd.sono = soh.sono
+				AND lpd.so_seq = soh.so_seq
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city polcity (NOLOCK)
+				ON ff.lportcode = polcity.citycode
+		WHERE soh.movement like 'CFS/%'
+			AND ff.cfs_closingdate IS NOT NULL 
+			AND eid.id IN <include refid="list"/>
+		UNION
+		--Vessel cut-off date (3051)
+		SELECT DISTINCT
+			eid.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			eid.code AS activitycode,
+			NULL AS shipmentid,
+			nn.azureid AS containerid,
+			NULL AS consignmentid,
+			eid.code2 AS activitytype,
+			'CY Closing Date' AS activitydescription,
+			CONVERT(VARCHAR(23), ff.cy_closingdate, 126) AS activitydate,
+			polcity.CityName AS location,
+			'' AS remark,
+			NULL AS resolved,
+			'' AS resolution,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS resolutiondate
+		FROM <include refid="dbName"/> eid (NOLOCK)
+			INNER JOIN <include refid="dbName"/> nn (NOLOCK)
+				ON eid.dbname = #{db}
+				AND eid.sysname = #{sysname}
+				AND eid.dbname = nn.dbname
+				AND eid.sysname = nn.sysname
+				AND eid.codetype = 'ACTIVITIES'
+				AND nn.codetype = 'CONTAINERS'
+				AND eid.code = '3051'
+				AND eid.code2 = 'CA'
+				AND eid.seq = nn.id  --ediSONETDId.CONTAINERS.id
+				AND ISNULL(nn.isetltoazure, '') = 'Y'
+			INNER JOIN dbo.lp_header lph (NOLOCK)
+				ON nn.code = lph.lp_no
+				AND nn.code2 = lph.containerno
+			INNER JOIN dbo.lp_detail lpd (NOLOCK)
+				ON lph.lp_no = lpd.lp_no
+			INNER JOIN dbo.so_header soh (NOLOCK)
+				ON lpd.sono = soh.sono
+				AND lpd.so_seq = soh.so_seq
+			INNER JOIN dbo.vesvoyforwarder ff (NOLOCK) 
+				ON soh.vesvoyno = ff.vesvoyno
+			INNER JOIN dbo.city polcity (NOLOCK)
+				ON ff.lportcode = polcity.citycode
+		WHERE soh.movement like 'CY/%'
+			AND ff.cy_closingdate IS NOT NULL 
+			AND eid.id IN <include refid="list"/>
+		) act
+		ORDER BY act.activitydate ASC, act.activitycode ASC
+	</select>
+	<select id="findPurchaseOrders" resultType="PurchaseOrders">
+		SELECT DISTINCT
+			ii.id AS [id],
+			'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+		    RTRIM(ISNULL(cvpo.companycode,'')) + '|' + RTRIM(ISNULL(cvpo.pono,'')) AS POKey,
+			RTRIM(ISNULL(cvpo.companycode,'')) + '|' + RTRIM(ISNULL(cvpo.pono,'')) + '|' + RTRIM(ISNULL(cvpo.POSeq,'')) + '|' + RTRIM(ISNULL(cvpo.ItemNo,'')) AS POLineKey,
+		    RTRIM(cvpo.PONo) AS PONumber,
+		    CASE WHEN ISNULL(cvpo.CustomerPO,'') = '' THEN CASE WHEN (ISNULL(ISNULL(portofloadmap.PartnerCode, cvpo.PortOfLoad),'') = ISNULL(ISNULL(portofdischargemap.PartnerCode, cvpo.PortOfDischarge),'') OR dcmap.Status = 'Y') THEN 'BLANKET' ELSE 'BULK' END ELSE 'ALLOCATED' END AS POType,
+		    CASE WHEN ISNULL(cvpo.CustomerPO,'') = '' THEN NULL ELSE RTRIM(ISNULL(cvpo.companycode,'')) + '|' + RTRIM(ISNULL(cvpo.CustomerPO,'')) END AS BlanketPOKey,
+			CONVERT(VARCHAR(23), cvpo.OrderDate, 126) AS POIssueDate,
+			countActiveItems.noi AS NumberOfLineItems,
+			RTRIM(ISNULL(cvpo.PaymentTerm, '')) AS Incoterm,
+			'' AS CarrierCode,
+			'' AS GatewayCode,
+			CASE WHEN RTRIM(ISNULL(cvpo.PortOfLoad, '')) <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(portofloadmap.PartnerCode, cvpo.PortOfLoad)),2) + LEFT(RTRIM(ISNULL(portofloadmap.PartnerCode, cvpo.PortOfLoad)),3) ELSE '' END AS ShipFrom,
+			CASE WHEN RTRIM(ISNULL(cvpo.DestCode, '')) <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(destcodemap.PartnerCode, cvpo.DestCode)),2) + LEFT(RTRIM(ISNULL(destcodemap.PartnerCode, cvpo.DestCode)),3) 
+				WHEN RTRIM(ISNULL(cvpo.PortOfDischarge, '')) <![CDATA[ <> ]]> '' THEN RIGHT(RTRIM(ISNULL(portofdischargemap.PartnerCode, cvpo.PortOfDischarge)),2) + LEFT(RTRIM(ISNULL(portofdischargemap.PartnerCode, cvpo.PortOfDischarge)),3) ELSE '' END AS ShipTo,
+			RTRIM(ISNULL(cvpo.Currency, '')) AS PaymentCurrencyCode,
+			RTRIM(ISNULL(cvpo.PaymentTerm, '')) AS PaymentTerms,
+			CASE ISNULL(cvpo.ShipMode, '') WHEN 'SEA' THEN 'Sea' WHEN 'AIR' THEN 'Air' ELSE RTRIM(ISNULL(cvpo.ShipMode, '')) END AS ModeOfTransport,
+			NULL AS EarliestShipDate,
+			CONVERT(VARCHAR(23), cvpo.ExpShipDate, 126) AS ExpectedShipDate,
+			CONVERT(VARCHAR(23), cvpo.ExpDelDate, 126) AS ExpectedDeliveryDate,
+			RTRIM(ISNULL(cvpo.ContainerType, '')) AS PORemark,
+			CASE WHEN RTRIM(cvpo.ContainerType) = 'CFS' THEN 'LCL'
+				WHEN RTRIM(cvpo.ContainerType) = '20RE' THEN '20RF'
+				WHEN RTRIM(cvpo.ContainerType) = '40RE' THEN '40RF'
+				ELSE RTRIM(ISNULL(cvpo.ContainerType, '')) END AS ContainerType,
+			'' AS Season,
+			CASE WHEN countActiveItems.noi = 0 THEN 0 ELSE 1 END AS Status,
+			RTRIM(cvpo.ItemNo) AS ProductCode,
+			cvpo.OrderQty AS OrderedUnitQty,
+			'Each' AS UnitUOM,
+			ISNULL(cvpo.UnitPrice, 0) AS UnitPrice,
+			cvpo.POSeq AS LineOrder,
+			RTRIM(ISNULL(cvpo.Currency, '')) AS CurrencyCode,
+			'' AS HSCode,
+			'' AS Commodity,
+			RTRIM(ISNULL(cvpo.DCCode, '')) AS ReferenceNumber1,
+			RTRIM(ISNULL(cvpo.SKU, '')) AS ReferenceNumber2,
+			RTRIM(ISNULL(cvpo.ItemDesc, '')) AS DescriptionOfGoods,
+			RTRIM(ISNULL(cvpo.color, '')) AS ColourCode,
+			RTRIM(ISNULL(polcity.countrycode, '')) AS CountryCodeOfOrigin,
+			CONVERT(VARCHAR(23), cvpo.ExWorkDate, 126) AS CargoReadyDate,
+			cvpo.ItemRemarks AS ProductRemark,
+			'Carton' AS PackageUOM
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'PURCHASEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,''))
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				WHERE cvpo.PONo = poi.PONo
+				AND cvpo.DestCode = poi.DestCode
+				AND cvpo.companycode = poi.companycode
+				AND cvpo.companytype = poi.companytype
+				AND cvpo.shipmentno = poi.shipmentno
+				AND poi.Status = 'O'
+			) countActiveItems
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				WHERE cvpo.PONo = poi.PONo
+				AND cvpo.DestCode = poi.DestCode
+				AND cvpo.companycode = poi.companycode
+				AND cvpo.companytype = poi.companytype
+				AND cvpo.shipmentno = poi.shipmentno
+			) countAllItems
+			LEFT JOIN <include refid="cvsDB"/>.dbo.city polcity (NOLOCK)
+				ON cvpo.PortOfLoad = polcity.citycode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap portofloadmap (NOLOCK)
+				ON portofloadmap.EDIName = 'SHIPMENT_PORTAL'
+				AND portofloadmap.codetype = 'PORTCODE'
+				AND portofloadmap.Status = 'Y'
+				AND cvpo.PortOfLoad = portofloadmap.OurCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap portofdischargemap (NOLOCK)
+				ON portofdischargemap.EDIName = 'SHIPMENT_PORTAL'
+				AND portofdischargemap.codetype = 'PORTCODE'
+				AND portofdischargemap.Status = 'Y'
+				AND cvpo.PortOfDischarge = portofdischargemap.OurCode				
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap destcodemap (NOLOCK)
+				ON destcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND destcodemap.codetype = 'PORTCODE'
+				AND destcodemap.Status = 'Y'
+				AND cvpo.DestCode = destcodemap.OurCode				
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dcmap (NOLOCK)
+				ON dcmap.EDIName = 'SHIPMENT_PORTAL'
+				AND dcmap.codetype = 'POBLANKETDCLIST'
+				AND dcmap.Status = 'Y'
+				AND ISNULL(cvpo.DCCode,'') = dcmap.OurCode
+		WHERE (countActiveItems.noi = 0 OR (countActiveItems.noi > 0 AND cvpo.Status = 'O'))
+			AND ii.id in <include refid="list"/>
+	</select>
+	<select id="findContacts" resultType="Contacts">
+		SELECT DISTINCT
+			ii.id AS [id],
+			map.PartnerCode AS OrganizationRole,
+			CASE WHEN map.OurCode IN ('P','C') THEN ISNULL(rel.code, aa.code)
+				WHEN map.OurCode IN ('V','S') THEN ISNULL(rel.code, ISNULL(aa.code, '0'))
+				WHEN map.OurCode IN ('O/A','A') THEN agt.code
+				ELSE NULL END AS OrganizationCode,
+			CASE WHEN map.OurCode IN ('V','S') THEN CASE WHEN ISNULL(rel.code, ISNULL(aa.code, '0')) = '0' THEN RTRIM(ISNULL(cvpo.SupplierName,'')) ELSE NULL END
+				ELSE NULL END AS CompanyName
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'PURCHASEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,''))
+				AND cvpo.Status = 'O'
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				WHERE cvpo.PONo = poi.PONo
+				AND cvpo.DestCode = poi.DestCode
+				AND cvpo.companycode = poi.companycode
+				AND cvpo.companytype = poi.companytype
+				AND cvpo.shipmentno = poi.shipmentno
+				AND poi.Status = 'O'
+			) countActiveItems
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'POPARTYTYPE'
+				AND map.Status = 'Y'
+				AND map.OurCode IN ('P','C','V','S','O/A','A')
+			LEFT JOIN <include refid="dbName"/> aa (NOLOCK)
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+				AND aa.codetype = 'ORGANIZATIONS'
+				AND ((map.OurCode = 'P' AND aa.code IN (<include refid="PRINCIPAL_CODE"/>))
+					OR (map.OurCode = 'C' AND cvpo.CompanyCode = aa.code)
+					OR (map.OurCode IN ('V', 'S') AND cvpo.SupplierCode = aa.code))
+		        AND aa.isetltoazure = 'Y'
+			LEFT JOIN <include refid="dbName"/> rel (NOLOCK)
+				ON ii.dbname = rel.dbname
+				AND rel.sysname = 'MASTERDATA'
+				AND rel.codetype = 'ORGREL'
+				AND aa.AzureId = rel.AzureId
+				AND rel.isetltoazure = 'Y'
+			OUTER APPLY
+			(
+				SELECT TOP 1 agt.code AS code
+				FROM <include refid="azureDB"/>.[dbo].[AgentAssignments] aa(NOLOCK)
+				INNER JOIN <include refid="azureDB"/>.[dbo].[BuyerCompliances] bc(NOLOCK)
+					ON aa.BuyerComplianceId = bc.id
+					AND bc.STATUS = '1'
+				CROSS APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Organizations] o(NOLOCK)
+					WHERE o.id = bc.OrganizationId
+						AND o.EdisonCompanyCodeId IN (<include refid="PRINCIPAL_CODE"/>)
+				) borg
+				CROSS APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Organizations] o(NOLOCK)
+					WHERE o.id = aa.agentOrganizationID
+				) agt
+				OUTER APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Countries] c(NOLOCK)
+					WHERE c.id = aa.CountryId
+				) cty
+				WHERE ((map.OurCode = 'O/A' AND aa.agentType = 1 AND (cty.code = RIGHT(RTRIM(cvpo.PortOfLoad),2) OR cty.code IS NULL))
+						OR (map.OurCode = 'A' AND aa.agentType = 2))
+				ORDER BY cty.code DESC
+			) agt
+		WHERE countActiveItems.noi > 0
+			AND ((map.OurCode IN ('P','C') AND (rel.code IS NOT NULL OR aa.code IS NOT NULL))
+				OR (map.OurCode IN ('O/A','A') AND agt.code IS NOT NULL)
+				OR map.OurCode IN ('V','S'))
+			AND ii.id in <include refid="list"/>
+		UNION
+		SELECT DISTINCT
+			ii.id AS [id],
+			poc.OrganizationRole AS OrganizationRole,
+			poc.OrganizationCode AS OrganizationCode,
+			poc.CompanyName AS CompanyName
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'PURCHASEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,''))
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				WHERE cvpo.PONo = poi.PONo
+				AND cvpo.DestCode = poi.DestCode
+				AND cvpo.companycode = poi.companycode
+				AND cvpo.companytype = poi.companytype
+				AND cvpo.shipmentno = poi.shipmentno
+				AND poi.Status = 'O'
+			) countActiveItems
+			LEFT JOIN <include refid="azureDB"/>.[dbo].[PurchaseOrderContacts] poc (NOLOCK)
+				ON ii.AzureId = poc.PurchaseOrderId
+		WHERE countActiveItems.noi = 0
+			AND ii.id in <include refid="list"/>
+	</select>
+	
+	<select id="findPOFulfillment" resultType="POFulfillment">
+	SELECT DISTINCT
+		RTRIM(ISNULL(b.BookingReferenceNumber, ISNULL(soh.ebookingno, ''))) AS BookingReferenceNo,
+		#{db} AS sysid,
+		CASE WHEN soh.so_seq > 1 THEN RTRIM(soh.sono) + '-' + CONVERT(VARCHAR(10), soh.so_seq) ELSE RTRIM(soh.sono) END AS SONumber,
+		RTRIM(ISNULL(soh.bl_no, '')) AS BillOfLadingHeader,
+		'' AS Warehouse,
+		ff.cy_closingdate AS CargoClosingDate,
+		CASE WHEN vv.vesselname = 'BY AIR' THEN 'Air'
+			WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN') THEN 'Railway'
+			WHEN vv.vesselname IN ('BY TRUCK', 'BY COURIER', 'COURIER') THEN 'Road'
+			ELSE 'Sea'
+		END AS ModeOfTransport,
+		CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ISNULL(airmap.PartnerCode, ff.linercode))
+			WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+			WHEN (ll.linercode IN ('ALL','TBC') OR RTRIM(ISNULL(ll.scac_code,'')) = '') THEN 'TBCC' 
+			ELSE RTRIM(ll.scac_code)
+		END AS CarrierCode,
+		CASE WHEN vv.vesselname = 'BY AIR' THEN RTRIM(ff.voyage)
+			WHEN vv.vesselname IN ('BY RAIL', 'BY TRAIN', 'BY TRUCK', 'BY COURIER', 'COURIER') THEN ''
+			ELSE RTRIM(LTRIM(RTRIM(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, '')))
+				+ CASE WHEN LEN(ISNULL(vv.vesselnamelong, ISNULL(vv.vesselname, ''))) = 0 THEN '' WHEN LEN(ISNULL(ff.voyage, '')) = 0 THEN '' ELSE '/' END
+				+ RTRIM(ISNULL(ff.voyage, ''))))
+		END AS VesselFlight,
+		RIGHT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),2) + LEFT(RTRIM(ISNULL(lportcodemap.PartnerCode, ff.lportcode)),3) AS LoadingPortCode,
+		ff.etd_date AS ETD,
+		RIGHT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),2) + LEFT(RTRIM(ISNULL(dportcodemap.PartnerCode, ff.dportcode)),3) AS DischargePortCode,
+		ff.eta_datedport AS ETA
+		FROM so_header soh (NOLOCK)
+		LEFT JOIN vesvoyforwarder ff (NOLOCK)
+			ON soh.vesvoyno = ff.vesvoyno
+		LEFT JOIN dbo.vessel vv (NOLOCK)
+			ON ff.vesselcode = vv.vesselcode
+		LEFT JOIN liner ll (NOLOCK)
+			ON ff.linercode = ll.linercode
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap airmap (NOLOCK)
+				ON airmap.EDIName = 'SHIPMENT_PORTAL'
+				AND airmap.codetype = 'AIRLINE'
+				AND airmap.Status = 'Y'
+				AND ff.linercode = airmap.OurCode
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap lportcodemap (NOLOCK)
+				ON lportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND lportcodemap.codetype = 'PORTCODE'
+				AND lportcodemap.Status = 'Y'
+				AND ff.lportcode = lportcodemap.OurCode
+		LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap dportcodemap (NOLOCK)
+				ON dportcodemap.EDIName = 'SHIPMENT_PORTAL'
+				AND dportcodemap.codetype = 'PORTCODE'
+				AND dportcodemap.Status = 'Y'
+				AND ff.dportcode = dportcodemap.OurCode
+		LEFT JOIN (
+			SELECT pf.Number AS Number, MAX(pfr.BookingReferenceNumber) AS BookingReferenceNumber
+			FROM <include refid="azureDB"/>.dbo.POFulfillments AS pf(NOLOCK)
+			INNER JOIN <include refid="azureDB"/>.dbo.POFulfillmentBookingRequests AS pfr(NOLOCK) ON pf.Id = pfr.POFulfillmentId
+			WHERE pf.Status = 10 AND pf.Stage = 20 AND pfr.Status = 10
+			GROUP BY pf.Number
+		) b ON SUBSTRING(soh.ebookingno, 1, 13) = b.Number
+		WHERE NOT EXISTS(
+			select id from <include refid="dbName"/> aa (NOLOCK)
+			where aa.codeType = 'POFULFILLMENT'
+			AND aa.dbname = #{db}
+			AND aa.sysname = #{sysname}
+			AND aa.code3 = ISNULL(b.BookingReferenceNumber, soh.ebookingno)
+			AND aa.status = 'DONE'
+			AND aa.isetltoazure = 'Y'
+		)  
+		AND ISNULL(soh.ebookingno, '') <![CDATA[ <> ]]> ''
+		AND ISNULL(soh.so_status, '') IN ('A','P')
+		AND soh.sono = #{sono} AND soh.so_seq = #{seq}
+	</select>
+	<select id="findCruiseOrders" resultType="CruiseOrders">
+	SELECT DISTINCT
+			ii.id AS [id],
+			'FreightSystem' AS createdby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+		    'FreightSystem' AS updatedby,
+		    CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			ISNULL(RTRIM(cs.POId),'') AS POId,
+			RTRIM(cvpo.PONo) AS PONumber,
+			CASE WHEN countActiveItems.noi = 0 THEN 0 ELSE 1 END AS POStatus,
+			ISNULL(RTRIM(cs.POType),'') AS POType,
+			CONVERT(VARCHAR(23), cvpo.OrderDate, 126) AS PODate,
+			ISNULL(RTRIM(cvpo.ItemRemarks),'') AS POSubject,
+			ISNULL(RTRIM(cs.POCause),'') AS POCause,
+			ISNULL(RTRIM(cs.Priority),'') AS POPriority,
+			ISNULL(RTRIM(cs.Ship),'') AS Ship,
+			ISNULL(RTRIM(cs.Requestor),'') AS Requestor,
+			CONVERT(VARCHAR(23), cs.ReqDate, 126) AS RequestDate,
+			CONVERT(VARCHAR(23), cs.ReqApprovedDate, 126) AS RequestApprovedDate,
+			ISNULL(RTRIM(cs.ReqPriority),'') AS RequestPriority,
+			ISNULL(RTRIM(cs.ReqType),'') AS RequestType,
+			ISNULL(RTRIM(cs.ReqType2),'') AS RequestType2,
+			ISNULL(RTRIM(cs.ReqType3),'') AS RequestType3,
+			ISNULL(RTRIM(cs.WithWO),'') AS WithWO,
+			CONVERT(VARCHAR(23), cvpo.ExpShipDate, 126) AS EstimatedDeliveryDate,
+			ISNULL(RTRIM(cs.Maker),'') AS Maker,
+			ISNULL(RTRIM(cs.MaintenanceObj),'') AS MaintenanceObject,
+			cs.Invoiced AS Invoiced,
+			ISNULL(RTRIM(cs.FirstReceivingPoint),'') AS FirstReceivingPoint,
+			ISNULL(RTRIM(cs.Department),'') AS Department,
+			ISNULL(RTRIM(cs.DeliveryMeans),'') AS DeliveryMeans,
+			ISNULL(RTRIM(cs.Delivered),'') AS Delivered,
+			ISNULL(RTRIM(cs.CreationUser),'') AS CreationUser,
+			ISNULL(RTRIM(cs.CertificateNo),'') AS CertificateNumber,
+			ISNULL(RTRIM(cs.CertificateID),'') AS CertificateId,
+			cs.BudgetYear AS BudgetYear,
+			cs.BudgetPeriod AS BudgetPeriod,
+			ISNULL(RTRIM(cs.BudgetID),'') AS BudgetId,
+			ISNULL(RTRIM(cs.BudgetAccount),'') AS BudgetAccount,
+			ISNULL(RTRIM(cs.Approver),'') AS Approver,
+			CONVERT(VARCHAR(23), cs.ApprovedDate, 126) AS ApprovedDate,
+			ISNULL(RTRIM(cs.ApprovalStatus),'') AS ApprovalStatus,
+			CONVERT(VARCHAR(23), cs.ActualShipDate, 126) AS ActualShipDate,
+			CONVERT(VARCHAR(23), cs.ActualDelDate, 126) AS ActualDeliveryDate,
+			--CruiseOrderItems--
+			cvpo.POSeq AS POLine,
+			RTRIM(cvpo.ItemNo) AS ItemId,
+			RTRIM(cvpo.ItemDesc) AS ItemName,
+			cs.NetUSUnitPrice AS NetUSUnitPrice,
+			cvpo.UnitPrice AS NetUnitPrice,
+			cs.TotalOrderPrice AS TotalOrderPrice,
+			cvpo.OrderQty AS OrderQuantity,
+			ISNULL(RTRIM(cvpo.Currency),'') AS Currency,
+			'Each' AS UOM,
+			cs.ReqQty AS RequestQuantity,
+			ISNULL(RTRIM(cs.ReqNo),'') AS RequestNumber,
+			cs.ReqLine AS RequestLine,
+			cs.QuantityDelivered AS QuantityDelivered,
+			ISNULL(RTRIM(cs.Notes2),'') AS ShipRequestLineNotes,
+			ISNULL(RTRIM(cs.Notes1),'') AS RequestLineShoreNotes,
+			ISNULL(RTRIM(cs.ItemDesc2),'') AS MakerReferenceOfItemName2,
+			CONVERT(VARCHAR(23), cs.FirstReceivedDate, 126) AS FirstReceivedDate,
+			CONVERT(VARCHAR(23), cs.ExpLineShipDate, 126) AS LineEstimatedDeliveryDate
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CRUISEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+			INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS cs(NOLOCK)
+				ON cvpo.CompanyCode = cs.CompanyCode
+				AND cvpo.CompanyType = cs.CompanyType
+				AND cvpo.PONo = cs.PONo
+				AND cvpo.ItemNo = cs.ItemNo
+				AND cvpo.ShipmentNo = cs.ShipmentNo
+				AND cvpo.POSeq = cs.POSeq
+				AND cvpo.DestCode = cs.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,''))
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS ics(NOLOCK)
+					ON poi.CompanyCode = ics.CompanyCode
+					AND poi.CompanyType = ics.CompanyType
+					AND poi.PONo = ics.PONo
+					AND poi.ItemNo = ics.ItemNo
+					AND poi.ShipmentNo = ics.ShipmentNo
+					AND poi.POSeq = ics.POSeq
+					AND poi.DestCode = ics.DestCode
+				WHERE cvpo.PONo = ics.PONo
+				AND cvpo.DestCode = ics.DestCode
+				AND cvpo.companycode = ics.companycode
+				AND cvpo.companytype = ics.companytype
+				AND cvpo.shipmentno = ics.shipmentno
+				AND cs.ship = ics.ship
+				AND poi.Status = 'O'
+			) countActiveItems
+		WHERE (countActiveItems.noi = 0 OR (countActiveItems.noi > 0 AND cvpo.Status = 'O'))
+			AND ii.id in <include refid="list"/>
+
+	</select>
+	<select id="findCruiseOrderContacts" resultType="CruiseOrderContacts">
+		SELECT DISTINCT
+			ii.id AS [id],
+			map.PartnerCode AS OrganizationRole,
+			CASE WHEN map.OurCode IN ('P','C') THEN ISNULL(oo.Id, 0)
+				WHEN map.OurCode IN ('V','S') THEN ISNULL(aa.AzureId, 0)
+				WHEN map.OurCode IN ('O/A','A') THEN ISNULL(agt.Id, 0)
+				ELSE 0 END AS OrganizationId,
+			CASE WHEN map.OurCode IN ('P') THEN ISNULL(RTRIM(oo.Name), cvm.PrincipalName)
+				WHEN map.OurCode IN ('C') THEN ISNULL(RTRIM(oo.Name), ccvm.ConsigneeName)
+				WHEN map.OurCode IN ('V','S') THEN cvpo.SupplierName
+				WHEN map.OurCode IN ('O/A') THEN ISNULL(agt.Name, 'Cargo Services') --for Cruise
+				WHEN map.OurCode IN ('A') THEN ISNULL(agt.Name, 'ACS Cruise Services') --for Cruise
+				ELSE NULL END AS CompanyName,
+			RTRIM(oo.Address) AS Address,
+			RTRIM(oo.ContactName) AS ContactName,
+			RTRIM(oo.ContactNumber) AS ContactNumber,
+			RTRIM(oo.ContactEmail) AS ContactEmail
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CRUISEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+				AND cvpo.Status = 'O'
+			INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS cs(NOLOCK)
+				ON cvpo.CompanyCode = cs.CompanyCode
+				AND cvpo.CompanyType = cs.CompanyType
+				AND cvpo.PONo = cs.PONo
+				AND cvpo.ItemNo = cs.ItemNo
+				AND cvpo.ShipmentNo = cs.ShipmentNo
+				AND cvpo.POSeq = cs.POSeq
+				AND cvpo.DestCode = cs.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,''))
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS ics(NOLOCK)
+					ON poi.CompanyCode = ics.CompanyCode
+					AND poi.CompanyType = ics.CompanyType
+					AND poi.PONo = ics.PONo
+					AND poi.ItemNo = ics.ItemNo
+					AND poi.ShipmentNo = ics.ShipmentNo
+					AND poi.POSeq = ics.POSeq
+					AND poi.DestCode = ics.DestCode
+				WHERE cvpo.PONo = ics.PONo
+				AND cvpo.DestCode = ics.DestCode
+				AND cvpo.companycode = ics.companycode
+				AND cvpo.companytype = ics.companytype
+				AND cvpo.shipmentno = ics.shipmentno
+				AND cs.ship = ics.ship
+				AND poi.Status = 'O'
+			) countActiveItems
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = 'SHIPMENT_PORTAL'
+				AND map.codetype = 'POPARTYTYPE'
+				AND map.Status = 'Y'
+				AND map.OurCode IN ('P','C','V','S','O/A','A')
+			LEFT JOIN <include refid="dbName"/> aa (NOLOCK)
+				ON ii.dbname = aa.dbname
+				AND aa.sysname = 'MASTERDATA'
+				AND aa.codetype = 'ORGANIZATIONS'
+				AND ((map.OurCode IN ('V', 'S') AND cvpo.SupplierCode = aa.code))
+				AND aa.isetltoazure = 'Y'
+			LEFT JOIN (
+				SELECT DISTINCT cvm.PrincipalCode, cvm.PrincipalOrgID, cvm.PrincipalName
+				FROM <include refid="cvsDB"/>.dbo.CruiseVesselMapOption cvm(NOLOCK)
+			) cvm ON cvpo.CompanyCode = cvm.PrincipalCode
+			LEFT JOIN <include refid="cvsDB"/>.dbo.CruiseVesselMapOption ccvm(NOLOCK)
+				ON cvpo.CompanyCode = ccvm.PrincipalCode
+				AND cs.Ship = ccvm.ShipCode
+			LEFT JOIN <include refid="azureMasterDB"/>.[dbo].[Organizations] oo (NOLOCK)
+				ON ((map.OurCode IN ('P') AND cvm.PrincipalOrgID IS NOT NULL AND cvm.PrincipalOrgID > 0 AND cvm.PrincipalOrgID = oo.Id)
+					OR (map.OurCode IN ('C') AND ccvm.ConsigneeOrgID IS NOT NULL AND ccvm.ConsigneeOrgID > 0 AND ccvm.ConsigneeOrgID = oo.Id))
+			OUTER APPLY
+			(
+				SELECT TOP 1 agt.Id AS Id, agt.Name AS Name
+				FROM <include refid="azureDB"/>.[dbo].[AgentAssignments] aa(NOLOCK)
+				INNER JOIN <include refid="azureDB"/>.[dbo].[BuyerCompliances] bc(NOLOCK)
+					ON aa.BuyerComplianceId = bc.id
+					AND bc.STATUS = '1'
+				CROSS APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Organizations] o(NOLOCK)
+					WHERE o.id = bc.OrganizationId
+						AND cvpo.CompanyCode = o.EdisonCompanyCodeId
+				) borg
+				CROSS APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Organizations] o(NOLOCK)
+					WHERE o.id = aa.agentOrganizationID
+				) agt
+				OUTER APPLY
+				(
+					SELECT *
+					FROM <include refid="azureMasterDB"/>.[dbo].[Countries] c(NOLOCK)
+					WHERE c.id = aa.CountryId
+				) cty
+				WHERE ((map.OurCode = 'O/A' AND aa.agentType = 1 AND (cty.code = RIGHT(RTRIM(cvpo.PortOfLoad),2) OR cty.code IS NULL))
+						OR (map.OurCode = 'A' AND aa.agentType = 2))
+				ORDER BY cty.code DESC
+			) agt
+		WHERE countActiveItems.noi > 0
+			AND map.OurCode IN ('P','C','V','S','O/A','A')
+			AND ii.id in <include refid="list"/>
+		UNION
+		SELECT DISTINCT
+			ii.id AS [id],
+			poc.OrganizationRole AS OrganizationRole,
+			poc.OrganizationId AS OrganizationId,
+			poc.CompanyName AS CompanyName,
+			poc.Address AS Address,
+			poc.ContactName AS ContactName,
+			poc.ContactNumber AS ContactNumber,
+			poc.ContactEmail AS ContactEmail
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CRUISEORDERS'
+				AND ii.code = cvpo.PONo
+				AND ii.code2 = cvpo.DestCode
+			INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS cs(NOLOCK)
+				ON cvpo.CompanyCode = cs.CompanyCode
+				AND cvpo.CompanyType = cs.CompanyType
+				AND cvpo.PONo = cs.PONo
+				AND cvpo.ItemNo = cs.ItemNo
+				AND cvpo.ShipmentNo = cs.ShipmentNo
+				AND cvpo.POSeq = cs.POSeq
+				AND cvpo.DestCode = cs.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cvpo.companycode,'')) + '~' + RTRIM(ISNULL(cvpo.companytype,'')) + '~' + RTRIM(ISNULL(cvpo.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,''))
+			CROSS APPLY (
+				SELECT COUNT(*) noi
+				FROM <include refid="cvsDB"/>.dbo.CompanyValidPO poi (NOLOCK)
+				INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS ics(NOLOCK)
+					ON poi.CompanyCode = ics.CompanyCode
+					AND poi.CompanyType = ics.CompanyType
+					AND poi.PONo = ics.PONo
+					AND poi.ItemNo = ics.ItemNo
+					AND poi.ShipmentNo = ics.ShipmentNo
+					AND poi.POSeq = ics.POSeq
+					AND poi.DestCode = ics.DestCode
+				WHERE cvpo.PONo = ics.PONo
+				AND cvpo.DestCode = ics.DestCode
+				AND cvpo.companycode = ics.companycode
+				AND cvpo.companytype = ics.companytype
+				AND cvpo.shipmentno = ics.shipmentno
+				AND cs.ship = ics.ship
+				AND poi.Status = 'O'
+			) countActiveItems
+			LEFT JOIN <include refid="azureDB"/>.[cruise].[CruiseOrderContacts] poc (NOLOCK)
+				ON ii.AzureId = poc.OrderId
+		WHERE countActiveItems.noi = 0
+			AND ii.id in <include refid="list"/>
+	</select>
+	<select id="findCruiseOrderWarehouse" resultType="CruiseOrderWarehouse">
+		SELECT DISTINCT
+			ii.id AS [id],
+			'FreightSystem' AS createdby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS createddate,
+			'FreightSystem' AS updatedby,
+			CONVERT(VARCHAR(23), GETDATE(), 126) AS updateddate,
+			po.AzureId AS CruiseOrderId,
+			cw.ItemNo AS ItemId,
+			cw.POSeq AS POLine,
+			ISNULL(RTRIM(cw.ModeOfTransport),'') AS ModeOfTransport,
+			ISNULL(RTRIM(cw.ContainerID),'') AS ContainerID,
+			ISNULL(RTRIM(cw.ContainerNo),'') AS ContainerNumber,
+			ISNULL(RTRIM(cw.BookedToShip),'') AS BookedToShip,
+			ISNULL(RTRIM(cw.BookingNo),'') AS BookingNumber,
+			ISNULL(RTRIM(cw.HAWBMAWB),'') AS HAWBMAWB,
+			ISNULL(RTRIM(cw.DeliveryTicket),'') AS DeliveryTicket,
+			CONVERT(VARCHAR(23), cw.BookingCreatedDate, 126) AS BookingCreatedDate,
+			CONVERT(VARCHAR(23), cw.DeliveryConfirmDate, 126) AS DeliveryConfirmDate,
+			ISNULL(RTRIM(cw.BookingRemarks),'') AS BookingRemarks,
+			ISNULL(RTRIM(cw.RefID),'') AS RefID,
+			ISNULL(RTRIM(cw.Department),'') AS Department,
+			ISNULL(RTRIM(cw.POCause),'') AS POCause,
+			ISNULL(RTRIM(cw.Ship),'') AS Ship,
+			ISNULL(RTRIM(cw.ReqType),'') AS ReqType,
+			ISNULL(RTRIM(cw.ReqType2),'') AS ReqType2,
+			ISNULL(RTRIM(cw.ReqType3),'') AS ReqType3,
+			ISNULL(RTRIM(cw.Delivered),'') AS Delivered,
+			cw.ReqLine AS ReqLine,
+			cw.QuantityDelivered AS QuantityDelivered,
+			CONVERT(VARCHAR(23), cw.ReqApprovedDate, 126) AS ReqApprovedDate,
+			CONVERT(VARCHAR(23), cw.ExpLineShipDate, 126) AS ExpLineShipDate,
+			ISNULL(RTRIM(cw.UNNo),'') AS UNNo,
+			CONVERT(VARCHAR(23), cw.ReceiveDate, 126) AS InDate,
+			CONVERT(VARCHAR(23), cw.RemoteReceivedDate, 126) AS AgentInDate,
+			cw.ReceivedQty AS ReceivedQty,
+			ISNULL(RTRIM(cw.UOM),'') AS UOM,
+			ISNULL(cw.KGS, 0) AS KGS,
+			ISNULL(RTRIM(cw.Dimension),'') AS Dimension,
+			ISNULL(cw.CBM, 0) AS CBM,
+			ISNULL(RTRIM(cw.PackageID),'') AS PackageID,
+			ISNULL(RTRIM(cw.IsOnHold),'') AS OnHold,
+			ISNULL(RTRIM(cw.OnHoldCode),'') AS OnHoldCode,
+			ISNULL(RTRIM(cw.IsOSD),'') AS OSD,
+			ISNULL(RTRIM(cw.OSDReason),'') AS OSDReason,
+			ISNULL(RTRIM(cw.IsBonded),'') AS Bonded,
+			ISNULL(RTRIM(cw.BondNo),'') AS BondNo,
+			ISNULL(RTRIM(cw.IsHazardous),'') AS Hazardous,
+			ISNULL(RTRIM(cw.MRStatus),'') AS MRStatus,
+			CONVERT(VARCHAR(23), cw.GRDate, 126) AS GRDate,
+			ISNULL(RTRIM(cw.PackingList),'') AS PackingList,
+			CONVERT(VARCHAR(23), cw.RTPDate, 126) AS RTPDate,
+			CONVERT(VARCHAR(23), cw.PackedDate, 126) AS PackedDate,
+			CONVERT(VARCHAR(23), cw.PLCloseDate, 126) AS PLClosingDate,
+			cw.ReceivingDays AS ReceivedDays,
+			cw.PhysicalQty AS PhysicalQty,
+			cw.ReleaseToPackDays AS ReleaseToPackDays,
+			cw.PackedOnHandDays AS PackedDays,
+			cw.InWHDays AS KeepWHDays,
+			cw.OnHoldDays AS OnHoldDays,
+			cw.AvailableDays AS AvailableDays,
+			NULL AS RemoteDate,
+			ISNULL(RTRIM(cw.RemoteStatus),'') AS RemoteStatus,
+			ISNULL(RTRIM(cw.InvLocationName),'') AS Warehouse
+		FROM <include refid="dbName"/> ii (NOLOCK)
+			INNER JOIN <include refid="cvsDB"/>.dbo.CruiseWMSOMR cw (NOLOCK)
+				ON ii.dbname = #{db}
+				AND ii.sysname = #{sysname}
+				AND ii.codetype = 'CRUISEORDERWAREHOUSE'
+				AND ii.code = cw.PONo
+				AND ii.code2 = cw.DestCode
+				AND ii.code3 = RTRIM(ISNULL(cw.companycode,'')) + '~' + RTRIM(ISNULL(cw.companytype,'')) + '~' + RTRIM(ISNULL(cw.shipmentno,'')) + '~' + CONVERT(VARCHAR,ISNULL(cw.poseq,'')) + '~' + RTRIM(ISNULL(cw.itemno,'')) + '~' + RTRIM(ISNULL(cw.ship,''))
+				AND cw.[Index] = 1
+			INNER JOIN <include refid="dbName"/> po (NOLOCK)
+				ON ii.dbname = po.dbname
+				AND ii.sysname = po.sysname
+				AND po.codetype = 'CRUISEORDERS'
+				AND ii.seq = po.id
+				AND ISNULL(po.isetltoazure, '') = 'Y'
+		WHERE ii.id in <include refid="list"/>
+	</select>
+</mapper>

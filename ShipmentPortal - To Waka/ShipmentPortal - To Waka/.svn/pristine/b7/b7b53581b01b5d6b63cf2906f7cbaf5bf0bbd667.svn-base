@@ -1,0 +1,25 @@
+## Backend Program Setting
+System.UserID = ShipmentPortalETLHandler
+System.SystemID = ShipmentPortal
+System.ServiceHandler = AzureService
+
+## Process save and update record. Value[500] mean 500 save and 500 update for each Type
+System.ProcessRecord = 5000
+
+##API Token 
+Grant.Type = client_credentials
+Client.Id = ImportDataMiddleware
+Client.Secret = importDataMiddlewareSecret
+
+## API URL
+API.Identity.Url=https://newuatcsfeidentity.azurewebsites.net
+API.Endpoints.Url=https://newuatcsfemasterapi.azurewebsites.net
+
+## API Error msg exceptions (Split by ;)
+Error.msg.exceptions=
+
+## API JSON data log
+API.JSON.data.log=N
+
+## Test id list (Split by ,)--
+Test.id =

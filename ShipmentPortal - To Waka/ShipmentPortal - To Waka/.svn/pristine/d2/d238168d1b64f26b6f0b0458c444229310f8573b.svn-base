@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="deliveryReq">
+
+	<sql id="dbName">[DeliveryRequest]</sql>
+	
+    <select id="findById" parameterType="int" resultType="com.csfe.common.business.entity.DeliveryRequest">
+        SELECT * FROM <include refid="dbName"/> WHERE reqID =#{reqID}
+    </select>
+    
+    <select id="findPendingDelivery" parameterType="java.lang.String" resultType="com.csfe.common.business.entity.DeliveryRequest">
+        SELECT * FROM <include refid="dbName"/> WHERE [Status] LIKE 'PEND'
+    </select>
+    
+    <insert id="insertDeliveryReq" parameterType="com.csfe.common.business.entity.DeliveryRequest">
+        <!-- <selectKey keyProperty="a_id" order="AFTER" resultType="java.lang.Integer">
+            SELECT LAST_INSERT_ID()
+        </selectKey> -->
+        INSERT INTO <include refid="dbName"/> ([SystemID],[ReqType],[ProcessID],[EmailFrom],[EmailTo],[EmailCC],[EmailBCC],[EmailSubject],[EmailContent],[Remarks],[Status],[CreatedBy],[CreatedOn],[UpdatedBy],[UpdatedOn])
+     	VALUES(#{systemID},#{reqType},#{processID},#{emailFrom},#{emailTo},#{emailCC},#{emailBCC},#{emailSubject},#{emailContent},#{remarks},#{status},#{createdBy},#{createdOn},#{updatedBy},#{updatedOn})
+    </insert>
+    
+    <update id="updateDeliveryReq" parameterType="com.csfe.common.business.entity.DeliveryRequest">
+       UPDATE <include refid="dbName"/>
+	   SET [SystemID] = #{systemID}
+	      ,[ReqType] = #{reqType}
+	      ,[ProcessID] = #{processID}
+	      ,[EmailFrom] = #{emailFrom}
+	      ,[EmailTo] = #{emailTo}
+	      ,[EmailCC] = #{emailCC}
+	      ,[EmailBCC] = #{emailBCC}
+	      ,[EmailSubject] = #{emailSubject}
+	      ,[EmailContent] = #{emailContent}
+	      ,[Remarks] = #{remarks}
+	      ,[Status] = #{status}
+	      ,[CreatedBy] = #{ceatedBy}
+	      ,[CreatedOn] = #{createdOn}
+	      ,[UpdatedBy] = #{updatedBy}
+	      ,[UpdatedOn] = #{updatedOn}
+	 	WHERE [reqID] = #{reqID}
+    </update>
+</mapper>

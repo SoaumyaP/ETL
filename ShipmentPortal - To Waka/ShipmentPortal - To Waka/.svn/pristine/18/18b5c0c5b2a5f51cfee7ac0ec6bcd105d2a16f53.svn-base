@@ -1,0 +1,70 @@
+package com.csfe.edison.business.entity;
+
+import com.csfe.common.ConstantsUtil;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class Payment {
+    private String invoiceNo;
+
+    private String paymentStatus;
+
+    private Date paymentDate;
+
+    private Date updatedDate;
+
+    private String updatedBy;
+    public String getInvoiceNo() {
+        return invoiceNo;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public Date getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(Date paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
+    public Date getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(Date updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public String dateFormat(Date date){
+        if (date != null){
+            return new SimpleDateFormat(ConstantsUtil.SIMPLE_DATE).format(date);
+        } else return null;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Payment [InvoiceNo=" + invoiceNo + ", PaymentStatus=" + paymentStatus + ", PaymentDate="
+                + paymentDate + ", UpdatedDate=" + updatedDate + ", UpdatedBy=" + updatedBy + "]";
+    }
+}

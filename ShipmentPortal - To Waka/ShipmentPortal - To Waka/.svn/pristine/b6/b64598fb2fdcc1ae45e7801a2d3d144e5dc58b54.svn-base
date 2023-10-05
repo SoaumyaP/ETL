@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	   		http://www.springframework.org/schema/aop
+	   		http://www.springframework.org/schema/aop/spring-aop.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	   		http://www.springframework.org/schema/jee
+	   		http://www.springframework.org/schema/jee/spring-jee.xsd
+        	http://www.springframework.org/schema/lang
+        	http://www.springframework.org/schema/lang/spring-lang.xsd
+        	http://www.springframework.org/schema/tx
+        	http://www.springframework.org/schema/tx/spring-tx.xsd
+        	http://www.springframework.org/schema/util
+        	http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc 
+			http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+	
+	<bean id="SZX-DB-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:conf/db/db-CNSZX.properties</value>
+			</list>
+		</property>
+	    <property name="placeholderPrefix" value="$szx{" />
+	    <property name="placeholderSuffix" value="}" />
+	</bean>
+	
+	<bean id="szxDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="$szx{DriverName}" />
+		<property name="url" value="$szx{URL};database=$szx{DataBaseName};instance=$szx{DataBaseInstance};appName=$szx{DataBaseAppName};autoReconnect=true;" />
+		<property name="username" value="$szx{USERNAME}" />
+		<property name="password" value="$szx{PASSWORD}" />
+		<property name="validationQuery" value="SELECT 1" />
+		<property name="testOnBorrow" value="true" />
+	</bean>
+			
+	<!-- SZX session factory -->
+	<bean id="SZXCNSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+    	<property name="dataSource" ref="szxDataSource"/>
+    	<!-- <property name="mapperLocations" value="classpath*:com/XXX/mapper/**/*.xml" /> -->
+    	<property name="configLocation" value="classpath:conf/mybatis-BMA-config.xml"></property>
+  	</bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	    <property name="basePackage" value="com.csfe.edison.business.dao" />
+	    <property name="sqlSessionFactoryBeanName" value="SZXCNSessionFactory" />
+	</bean>
+	<bean id="SZXCNTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="szxDataSource" />
+    </bean>
+	<tx:annotation-driven transaction-manager="SZXCNTransactionManager"/>
+	<tx:advice id="SZXCNTxAdvice" transaction-manager="SZXCNTransactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" read-only="false" rollback-for="com.csfe.common.CSFEException" />
+			<tx:method name="*" propagation="REQUIRED" read-only="true" isolation="READ_UNCOMMITTED" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:advisor pointcut-ref="SZXCNServiceOperation" advice-ref="SZXCNTxAdvice" />
+		<aop:aspect id="SZXCNAspect" ref="SZXCNService">
+				<aop:pointcut id="SZXCNServiceOperation" expression="execution(* com.csfe.edison.business.service.EdisonServiceImpl.*(..))" />
+		</aop:aspect>
+	</aop:config>
+	<bean id="SZXCNService" class="com.csfe.edison.business.service.EdisonServiceImpl">
+		<property name="dbName" value="EDISON_PRC_SZN_NVO" />
+	</bean>	
+</beans>

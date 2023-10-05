@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	   		http://www.springframework.org/schema/aop
+	   		http://www.springframework.org/schema/aop/spring-aop.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	   		http://www.springframework.org/schema/jee
+	   		http://www.springframework.org/schema/jee/spring-jee.xsd
+        	http://www.springframework.org/schema/lang
+        	http://www.springframework.org/schema/lang/spring-lang.xsd
+        	http://www.springframework.org/schema/tx
+        	http://www.springframework.org/schema/tx/spring-tx.xsd
+        	http://www.springframework.org/schema/util
+        	http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc 
+			http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+			
+	<bean id="DirectDBList" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<!--
+				<value>Shipments</value>
+				<value>BillOfLadings</value>
+				<value>MasterBills</value>
+				<value>Containers</value>
+				<value>Consolidations</value>
+				<value>Consignments</value>
+				<value>CargoDetails</value>
+				<value>ShipmentLoads</value>
+				<value>ShipmentLoadDetails</value>
+				<value>BillOfLadingContacts</value>
+				<value>MasterBillContacts</value>
+				<value>ShipmentContacts</value>
+				<value>Itineraries</value>
+				<value>BillOfLadingConsignments</value>
+				<value>BillOfLadingItineraries</value>
+				<value>ShipmentBillOfLadings</value>
+				<value>BillOfLadingShipmentLoads</value>
+				<value>ConsignmentItineraries</value>
+				<value>ContainerItineraries</value>
+				<value>MasterBillItineraries</value>
+				-->
+			</list>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="EdisonLogSQLList" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>SHIPMENTSSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>POFULFILLMENTIMPORTSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>BILLOFLADINGSSQL</value>
+						<value>MASTERBILLSSQL</value>
+						<value>CONTAINERSSQL</value>
+						<value>CONSOLIDATIONSSQL</value>
+						<value>CONSIGNMENTSSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>BILLOFLADINGCONTACTSSQL</value>
+						<value>MASTERBILLCONTACTSSQL</value>
+						<value>SHIPMENTCONTACTSSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>CARGODETAILSSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>SHIPMENTLOADSSQL</value>
+						<value>SHIPMENTLOADDETAILSSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>ITINERARIESSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			<bean class="java.util.ArrayList">
+				<constructor-arg>
+					<list>
+						<value>ACTIVITIESSQL</value>
+					</list>
+				</constructor-arg>
+			</bean>
+			</list>
+		</constructor-arg>
+	</bean>
+	
+		
+	<bean id="APIMap" class="java.util.LinkedHashMap">
+		<constructor-arg>
+			<map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="Shipments">
+					<value>/api/shipments</value>
+				</entry>
+				<entry key="BillOfLadings">
+					<value>/api/billofladings</value>
+				</entry>
+				<entry key="MasterBills">
+					<value>/api/masterbillofladings</value>
+				</entry>
+				<entry key="Containers">
+					<value>/api/containers</value>
+				</entry>
+				<entry key="Consolidations">
+					<value>/api/consolidations</value>
+				</entry>
+				<entry key="Consignments">
+					<value>/api/consignments</value>
+				</entry>
+				<entry key="BillOfLadingContacts">
+					<value>/api/billofladingcontacts</value>
+				</entry>
+				<entry key="MasterBillContacts">
+					<value>/api/masterbillofladingcontacts</value>
+				</entry>
+				<entry key="ShipmentContacts">
+					<value>/api/shipmentcontacts</value>
+				</entry>
+				<entry key="CargoDetails">
+					<value>/api/cargodetails</value>
+				</entry>
+				<entry key="ShipmentLoads">
+					<value>/api/shipmentloads</value>
+				</entry>
+				<entry key="ShipmentLoadDetails">
+					<value>/api/shipmentloaddetails</value>
+				</entry>
+				<entry key="Itineraries">
+					<value>/api/itineraries</value>
+				</entry>
+				<entry key="Activities">
+					<value>/api/activities</value>
+				</entry>
+				<entry key="BillOfLadingConsignments">
+					<value>/api/billofladingconsignments</value>
+				</entry>
+				<entry key="BillOfLadingItineraries">
+					<value>/api/billofladingitineraries</value>
+				</entry>
+				<entry key="ShipmentBillOfLadings">
+					<value>/api/shipmentbillofladings</value>
+				</entry>
+				<entry key="BillOfLadingShipmentLoads">
+					<value>/api/billofladingshipmentloads</value>
+				</entry>
+				<entry key="ConsignmentItineraries">
+					<value>/api/consignmentitineraries</value>
+				</entry>
+				<entry key="ContainerItineraries">
+					<value>/api/containerItineraries</value>
+				</entry>
+				<entry key="MasterBillItineraries">
+					<value>/api/masterbillofladingitineraries</value>
+				</entry>
+				<entry key="POFulfillment">
+					<value>/api/POFulfillmentItineraries</value>
+				</entry>
+			</map>
+		</constructor-arg>
+	</bean>		
+</beans>

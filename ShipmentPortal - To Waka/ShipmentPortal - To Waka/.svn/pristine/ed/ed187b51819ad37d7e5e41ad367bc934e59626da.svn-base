@@ -1,0 +1,29 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.trs.business.dao.booking.POFulfillmentDAO">
+<select id="findCNFMBooking" resultType="POFulfillment">
+	SELECT 
+		bk.bkno AS BookingReferenceNo,
+		edi.sysid AS sysid,
+		edi.sono AS SONumber,
+		obk.blno AS BillOfLadingHeader,
+		bk.WarehouseID AS Warehouse,
+		bk.ClosingDate AS CargoClosingDate,
+		'Sea' AS ModeOfTransport,
+		'' AS CarrierCode,
+		'' AS VesselFlight,
+		obk.LoadingPort AS LoadingPortCode,
+		'' AS ETD,
+		obk.DischargePort AS DischargePortCode,
+		'' AS ETA
+		FROM BookingEDIRequest edi 
+		INNER JOIN bookingbasic bk 
+		ON edi.bkid = bk.bkid 
+		INNER JOIN oceanbookingbasic obk 
+		on edi.bkid = obk.bkid 
+		WHERE edi.DataSource = #{DataSource}
+		AND edi.STATUS = 'CNFM' 
+		AND edi.UpdatedOn >= #{CreatedOn}
+</select>
+</mapper>

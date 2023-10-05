@@ -1,0 +1,894 @@
+package com.csfe.etl.business.entity.po;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import com.csfe.etl.business.entity.po.Contacts;
+import com.csfe.etl.business.entity.po.LineItems;
+
+public class PurchaseOrders {
+	
+	private long Id;
+	private String POKey;
+	private String PONumber;
+	private String POIssueDate;
+	private String POType;
+	private String BlanketPOKey;
+	private String NumberOfLineItems;
+	private String Incoterm;
+	private String CarrierCode;
+	private String GatewayCode;
+	private String ShipFrom;
+	private String ShipTo;
+	private String POTerms;
+	private String PaymentCurrencyCode;
+	private String PaymentTerms;
+	private String ModeOfTransport;
+	private String EarliestShipDate;
+	private String EarliestDeliveryDate;
+	private String ExpectedShipDate;
+	private String ExpectedDeliveryDate;
+	private String LatestShipDate;
+	private String LatestDeliveryDate;
+	private String PORemark;
+	private String ContainerType;
+	private String Season;
+	private String HazardousMaterialsInstruction;
+	private String SpecialHandlingInstruction;
+	private String Status;
+	private String CustomerReferences;
+	private String Department;
+	private String CarrierName;
+	private String GatewayName;
+	private String ShipFromName;
+	private String ShipToName;
+	private String Volume;
+	private String GrossWeight;
+	private String ContractShipmentDate;
+	private String CreatedDate;
+	private String CreatedBy;
+	private String UpdatedDate;
+	private String UpdatedBy;
+	
+	private String POLineKey;
+	private String ProductCode;
+	private String ProductName;
+	private String OrderedUnitQty;
+	private String UnitUOM;
+	private String UnitPrice;
+	private String LineOrder;
+	private String CurrencyCode;
+	private String ProductFamily;
+	private String HSCode;
+	private String SupplierProductCode;
+	private String MinPackageQty;
+	private String MinOrderQty;
+	private String Commondity;
+	private String ReferenceNumber1;
+	private String ReferenceNumber2;
+	private String ShippingMarks;
+	private String DescriptionOfGoods;
+	private String PackagingInstruction;
+	private String ProductRemark;
+	private String CountryCodeOfOrigin;
+	private String CargoReadyDate;
+	private String PackageUOM;
+	private String ColourCode;
+	private String SeasonCode;
+	private String StyleNo;
+	private String Size;
+	private String ItemGrossWeight;
+	private String ItemVolume;
+	private String ScheduleLineNo;
+	private String InboundDelivery;
+	private String POItemReference;
+	private String ShipmentNo;
+	private String Plant;
+	private String StorageLocation;
+	private String MatGrpDe;
+	private String MaterialType;
+	private String SKU;
+	private String GridValue;
+	private String StockCategory;
+	private String HeaderText;
+	private String Length;
+	private String Width;
+	private String Height;
+	private String NetWeight;
+	private String FactoryName;
+	
+	private Set<Contacts> Contacts;
+	private Set<LineItems> LineItems;
+	
+	public PurchaseOrders() {
+		super();
+		this.setContacts(new LinkedHashSet<Contacts>());
+	}
+
+	public long getId() {
+		return Id;
+	}
+
+	public void setId(long id) {
+		Id = id;
+	}
+
+	public String getPOKey() {
+		return POKey;
+	}
+
+	public void setPOKey(String pOKey) {
+		POKey = pOKey;
+	}
+
+	public String getPOLineKey() {
+		return POLineKey;
+	}
+
+	public void setPOLineKey(String pOLineKey) {
+		POLineKey = pOLineKey;
+	}
+
+	public Set<LineItems> getLineItems() {
+		return LineItems;
+	}
+
+	public void setLineItems(Set<LineItems> lineItems) {
+		LineItems = lineItems;
+	}
+
+	public String getPONumber() {
+		return PONumber;
+	}
+
+	public void setPONumber(String pONumber) {
+		PONumber = pONumber;
+	}
+
+	public String getPOIssueDate() {
+		return POIssueDate;
+	}
+
+	public void setPOIssueDate(String pOIssueDate) {
+		POIssueDate = pOIssueDate;
+	}
+
+	public String getPOType() {
+		return POType;
+	}
+
+	public void setPOType(String pOType) {
+		POType = pOType;
+	}
+
+	public String getBlanketPOKey() {
+		return BlanketPOKey;
+	}
+
+	public void setBlanketPOKey(String blanketPOKey) {
+		BlanketPOKey = blanketPOKey;
+	}
+
+	public String getNumberOfLineItems() {
+		return NumberOfLineItems;
+	}
+
+	public void setNumberOfLineItems(String numberOfLineItems) {
+		NumberOfLineItems = numberOfLineItems;
+	}
+
+	public String getIncoterm() {
+		return Incoterm;
+	}
+
+	public void setIncoterm(String incoterm) {
+		Incoterm = incoterm;
+	}
+
+	public String getCarrierCode() {
+		return CarrierCode;
+	}
+
+	public void setCarrierCode(String carrierCode) {
+		CarrierCode = carrierCode;
+	}
+
+	public String getGatewayCode() {
+		return GatewayCode;
+	}
+
+	public void setGatewayCode(String gatewayCode) {
+		GatewayCode = gatewayCode;
+	}
+
+	public String getShipFrom() {
+		return ShipFrom;
+	}
+
+	public void setShipFrom(String shipFrom) {
+		ShipFrom = shipFrom;
+	}
+
+	public String getShipTo() {
+		return ShipTo;
+	}
+
+	public void setShipTo(String shipTo) {
+		ShipTo = shipTo;
+	}
+
+	public String getPOTerms() {
+		return POTerms;
+	}
+
+	public void setPOTerms(String pOTerms) {
+		POTerms = pOTerms;
+	}
+
+	public String getPaymentCurrencyCode() {
+		return PaymentCurrencyCode;
+	}
+
+	public void setPaymentCurrencyCode(String paymentCurrencyCode) {
+		PaymentCurrencyCode = paymentCurrencyCode;
+	}
+
+	public String getPaymentTerms() {
+		return PaymentTerms;
+	}
+
+	public void setPaymentTerms(String paymentTerms) {
+		PaymentTerms = paymentTerms;
+	}
+
+	public String getModeOfTransport() {
+		return ModeOfTransport;
+	}
+
+	public void setModeOfTransport(String modeOfTransport) {
+		ModeOfTransport = modeOfTransport;
+	}
+
+	public String getEarliestShipDate() {
+		return EarliestShipDate;
+	}
+
+	public void setEarliestShipDate(String earliestShipDate) {
+		EarliestShipDate = earliestShipDate;
+	}
+
+	public String getEarliestDeliveryDate() {
+		return EarliestDeliveryDate;
+	}
+
+	public void setEarliestDeliveryDate(String earliestDeliveryDate) {
+		EarliestDeliveryDate = earliestDeliveryDate;
+	}
+
+	public String getExpectedShipDate() {
+		return ExpectedShipDate;
+	}
+
+	public void setExpectedShipDate(String expectedShipDate) {
+		ExpectedShipDate = expectedShipDate;
+	}
+
+	public String getExpectedDeliveryDate() {
+		return ExpectedDeliveryDate;
+	}
+
+	public void setExpectedDeliveryDate(String expectedDeliveryDate) {
+		ExpectedDeliveryDate = expectedDeliveryDate;
+	}
+
+	public String getLatestShipDate() {
+		return LatestShipDate;
+	}
+
+	public void setLatestShipDate(String latestShipDate) {
+		LatestShipDate = latestShipDate;
+	}
+
+	public String getLatestDeliveryDate() {
+		return LatestDeliveryDate;
+	}
+
+	public void setLatestDeliveryDate(String latestDeliveryDate) {
+		LatestDeliveryDate = latestDeliveryDate;
+	}
+
+	public String getPORemark() {
+		return PORemark;
+	}
+
+	public void setPORemark(String pORemark) {
+		PORemark = pORemark;
+	}
+
+	public String getContainerType() {
+		return ContainerType;
+	}
+
+	public void setContainerType(String containerType) {
+		ContainerType = containerType;
+	}
+
+	public String getSeason() {
+		return Season;
+	}
+
+	public void setSeason(String season) {
+		Season = season;
+	}
+
+	public String getStatus() {
+		return Status;
+	}
+
+	public void setStatus(String status) {
+		Status = status;
+	}
+
+	public String getHazardousMaterialsInstruction() {
+		return HazardousMaterialsInstruction;
+	}
+
+	public void setHazardousMaterialsInstruction(String hazardousMaterialsInstruction) {
+		HazardousMaterialsInstruction = hazardousMaterialsInstruction;
+	}
+
+	public String getSpecialHandlingInstruction() {
+		return SpecialHandlingInstruction;
+	}
+
+	public void setSpecialHandlingInstruction(String specialHandlingInstruction) {
+		SpecialHandlingInstruction = specialHandlingInstruction;
+	}
+
+	public String getCustomerReferences() {
+		return CustomerReferences;
+	}
+
+	public void setCustomerReferences(String customerReferences) {
+		CustomerReferences = customerReferences;
+	}
+
+	public String getDepartment() {
+		return Department;
+	}
+
+	public void setDepartment(String department) {
+		Department = department;
+	}
+
+	public String getCarrierName() {
+		return CarrierName;
+	}
+
+	public void setCarrierName(String carrierName) {
+		CarrierName = carrierName;
+	}
+
+	public String getGatewayName() {
+		return GatewayName;
+	}
+
+	public void setGatewayName(String gatewayName) {
+		GatewayName = gatewayName;
+	}
+
+	public String getShipFromName() {
+		return ShipFromName;
+	}
+
+	public void setShipFromName(String shipFromName) {
+		ShipFromName = shipFromName;
+	}
+
+	public String getShipToName() {
+		return ShipToName;
+	}
+
+	public void setShipToName(String shipToName) {
+		ShipToName = shipToName;
+	}
+
+	public String getVolume() {
+		return Volume;
+	}
+
+	public void setVolume(String volume) {
+		Volume = volume;
+	}
+
+	public String getGrossWeight() {
+		return GrossWeight;
+	}
+
+	public void setGrossWeight(String grossWeight) {
+		GrossWeight = grossWeight;
+	}
+
+	public String getContractShipmentDate() {
+		return ContractShipmentDate;
+	}
+
+	public void setContractShipmentDate(String contractShipmentDate) {
+		ContractShipmentDate = contractShipmentDate;
+	}
+
+	public String getCreatedDate() {
+		return CreatedDate;
+	}
+
+	public void setCreatedDate(String createdDate) {
+		CreatedDate = createdDate;
+	}
+
+	public String getCreatedBy() {
+		return CreatedBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		CreatedBy = createdBy;
+	}
+
+	public String getUpdatedDate() {
+		return UpdatedDate;
+	}
+
+	public void setUpdatedDate(String updatedDate) {
+		UpdatedDate = updatedDate;
+	}
+
+	public String getUpdatedBy() {
+		return UpdatedBy;
+	}
+
+	public void setUpdatedBy(String updatedBy) {
+		UpdatedBy = updatedBy;
+	}
+
+	public String getProductCode() {
+		return ProductCode;
+	}
+
+	public void setProductCode(String productCode) {
+		ProductCode = productCode;
+	}
+
+	public String getProductName() {
+		return ProductName;
+	}
+
+	public void setProductName(String productName) {
+		ProductName = productName;
+	}
+
+	public String getOrderedUnitQty() {
+		return OrderedUnitQty;
+	}
+
+	public void setOrderedUnitQty(String orderedUnitQty) {
+		OrderedUnitQty = orderedUnitQty;
+	}
+
+	public String getUnitUOM() {
+		return UnitUOM;
+	}
+
+	public void setUnitUOM(String unitUOM) {
+		UnitUOM = unitUOM;
+	}
+
+	public String getUnitPrice() {
+		return UnitPrice;
+	}
+
+	public void setUnitPrice(String unitPrice) {
+		UnitPrice = unitPrice;
+	}
+
+	public String getLineOrder() {
+		return LineOrder;
+	}
+
+	public void setLineOrder(String lineOrder) {
+		LineOrder = lineOrder;
+	}
+
+	public String getCurrencyCode() {
+		return CurrencyCode;
+	}
+
+	public void setCurrencyCode(String currencyCode) {
+		CurrencyCode = currencyCode;
+	}
+
+	public String getProductFamily() {
+		return ProductFamily;
+	}
+
+	public void setProductFamily(String productFamily) {
+		ProductFamily = productFamily;
+	}
+
+	public String getHSCode() {
+		return HSCode;
+	}
+
+	public void setHSCode(String hSCode) {
+		HSCode = hSCode;
+	}
+
+	public String getSupplierProductCode() {
+		return SupplierProductCode;
+	}
+
+	public void setSupplierProductCode(String supplierProductCode) {
+		SupplierProductCode = supplierProductCode;
+	}
+
+	public String getMinPackageQty() {
+		return MinPackageQty;
+	}
+
+	public void setMinPackageQty(String minPackageQty) {
+		MinPackageQty = minPackageQty;
+	}
+
+	public String getMinOrderQty() {
+		return MinOrderQty;
+	}
+
+	public void setMinOrderQty(String minOrderQty) {
+		MinOrderQty = minOrderQty;
+	}
+
+	public String getCommondity() {
+		return Commondity;
+	}
+
+	public void setCommondity(String commondity) {
+		Commondity = commondity;
+	}
+
+	public String getReferenceNumber1() {
+		return ReferenceNumber1;
+	}
+
+	public void setReferenceNumber1(String referenceNumber1) {
+		ReferenceNumber1 = referenceNumber1;
+	}
+
+	public String getReferenceNumber2() {
+		return ReferenceNumber2;
+	}
+
+	public void setReferenceNumber2(String referenceNumber2) {
+		ReferenceNumber2 = referenceNumber2;
+	}
+
+	public String getShippingMarks() {
+		return ShippingMarks;
+	}
+
+	public void setShippingMarks(String shippingMarks) {
+		ShippingMarks = shippingMarks;
+	}
+
+	public String getDescriptionOfGoods() {
+		return DescriptionOfGoods;
+	}
+
+	public void setDescriptionOfGoods(String descriptionOfGoods) {
+		DescriptionOfGoods = descriptionOfGoods;
+	}
+
+	public String getPackagingInstruction() {
+		return PackagingInstruction;
+	}
+
+	public void setPackagingInstruction(String packagingInstruction) {
+		PackagingInstruction = packagingInstruction;
+	}
+
+	public String getProductRemark() {
+		return ProductRemark;
+	}
+
+	public void setProductRemark(String productRemark) {
+		ProductRemark = productRemark;
+	}
+
+	public String getCountryCodeOfOrigin() {
+		return CountryCodeOfOrigin;
+	}
+
+	public void setCountryCodeOfOrigin(String countryCodeOfOrigin) {
+		CountryCodeOfOrigin = countryCodeOfOrigin;
+	}
+
+	public String getCargoReadyDate() {
+		return CargoReadyDate;
+	}
+
+	public void setCargoReadyDate(String cargoReadyDate) {
+		CargoReadyDate = cargoReadyDate;
+	}
+
+	public String getPackageUOM() {
+		return PackageUOM;
+	}
+
+	public void setPackageUOM(String packageUOM) {
+		PackageUOM = packageUOM;
+	}
+
+	public String getColourCode() {
+		return ColourCode;
+	}
+
+	public void setColourCode(String colourCode) {
+		ColourCode = colourCode;
+	}
+
+	public Set<Contacts> getContacts() {
+		return Contacts;
+	}
+
+	public void setContacts(Set<Contacts> contacts) {
+		this.Contacts = contacts;
+	}
+	
+	public void resetContacts() {
+		this.setContacts(new LinkedHashSet<Contacts>());
+	}
+
+	public void addContacts(Contacts contacts) {
+		if(this.getContacts() == null) this.resetContacts();
+		this.getContacts().add(contacts);
+	}
+	
+	public Set<LineItems> getLinerItems() {
+		return LineItems;
+	}
+
+	public void setLinerItems(Set<LineItems> linerItems) {
+		LineItems = linerItems;
+	}
+	
+	public String getSeasonCode() {
+		return SeasonCode;
+	}
+
+	public void setSeasonCode(String seasonCode) {
+		SeasonCode = seasonCode;
+	}
+
+	public String getStyleNo() {
+		return StyleNo;
+	}
+
+	public void setStyleNo(String styleNo) {
+		StyleNo = styleNo;
+	}
+
+	public String getSize() {
+		return Size;
+	}
+
+	public void setSize(String size) {
+		Size = size;
+	}
+
+	public String getItemGrossWeight() {
+		return ItemGrossWeight;
+	}
+
+	public void setItemGrossWeight(String itemGrossWeight) {
+		ItemGrossWeight = itemGrossWeight;
+	}
+
+	public String getItemVolume() {
+		return ItemVolume;
+	}
+
+	public void setItemVolume(String itemVolume) {
+		ItemVolume = itemVolume;
+	}
+
+	public String getScheduleLineNo() {
+		return ScheduleLineNo;
+	}
+
+	public void setScheduleLineNo(String scheduleLineNo) {
+		ScheduleLineNo = scheduleLineNo;
+	}
+
+	public String getInboundDelivery() {
+		return InboundDelivery;
+	}
+
+	public void setInboundDelivery(String inboundDelivery) {
+		InboundDelivery = inboundDelivery;
+	}
+
+	public String getPOItemReference() {
+		return POItemReference;
+	}
+
+	public void setPOItemReference(String pOItemReference) {
+		POItemReference = pOItemReference;
+	}
+
+	public String getShipmentNo() {
+		return ShipmentNo;
+	}
+
+	public void setShipmentNo(String shipmentNo) {
+		ShipmentNo = shipmentNo;
+	}
+
+	public String getPlant() {
+		return Plant;
+	}
+
+	public void setPlant(String plant) {
+		Plant = plant;
+	}
+
+	public String getStorageLocation() {
+		return StorageLocation;
+	}
+
+	public void setStorageLocation(String storageLocation) {
+		StorageLocation = storageLocation;
+	}
+
+	public String getMatGrpDe() {
+		return MatGrpDe;
+	}
+
+	public void setMatGrpDe(String matGrpDe) {
+		MatGrpDe = matGrpDe;
+	}
+
+	public String getMaterialType() {
+		return MaterialType;
+	}
+
+	public void setMaterialType(String materialType) {
+		MaterialType = materialType;
+	}
+
+	public String getSKU() {
+		return SKU;
+	}
+
+	public void setSKU(String sKU) {
+		SKU = sKU;
+	}
+
+	public String getGridValue() {
+		return GridValue;
+	}
+
+	public void setGridValue(String gridValue) {
+		GridValue = gridValue;
+	}
+
+	public String getStockCategory() {
+		return StockCategory;
+	}
+
+	public void setStockCategory(String stockCategory) {
+		StockCategory = stockCategory;
+	}
+
+	public String getHeaderText() {
+		return HeaderText;
+	}
+
+	public void setHeaderText(String headerText) {
+		HeaderText = headerText;
+	}
+
+	public String getLength() {
+		return Length;
+	}
+
+	public void setLength(String length) {
+		Length = length;
+	}
+
+	public String getWidth() {
+		return Width;
+	}
+
+	public void setWidth(String width) {
+		Width = width;
+	}
+
+	public String getHeight() {
+		return Height;
+	}
+
+	public void setHeight(String height) {
+		Height = height;
+	}
+
+	public String getNetWeight() {
+		return NetWeight;
+	}
+
+	public void setNetWeight(String netWeight) {
+		NetWeight = netWeight;
+	}
+
+	public String getFactoryName() {
+		return FactoryName;
+	}
+
+	public void setFactoryName(String factoryName) {
+		FactoryName = factoryName;
+	}
+
+	public void resetLinerItems() {
+		this.setLinerItems(new LinkedHashSet<LineItems>());
+	}
+	
+	public void addLinerItems(LineItems linerItems) {
+		if(this.getLinerItems() == null) this.resetLinerItems();
+		this.getLinerItems().add(linerItems);
+	}
+	
+	public void packupLinerItems() {
+		this.addLinerItems(new LineItems(this));
+		this.setPOLineKey(null);
+		this.setProductCode(null);
+		this.setProductName(null);
+		this.setProductFamily(null);
+		this.setProductRemark(null);
+		this.setOrderedUnitQty(null);
+		this.setUnitUOM(null);
+		this.setUnitPrice(null);
+		this.setLineOrder(null);
+		this.setCurrencyCode(null);
+		this.setHSCode(null);
+		this.setSupplierProductCode(null);
+		this.setMinOrderQty(null);
+		this.setMinPackageQty(null);
+		this.setCommondity(null);
+		this.setReferenceNumber1(null);
+		this.setReferenceNumber2(null);
+		this.setShippingMarks(null);
+		this.setDescriptionOfGoods(null);
+		this.setPackagingInstruction(null);
+		this.setCountryCodeOfOrigin(null);
+		this.setPackageUOM(null);
+		this.setColourCode(null);
+		this.setSeasonCode(null);
+		this.setStyleNo(null);
+		this.setSize(null);
+		this.setItemGrossWeight(null);
+		this.setItemVolume(null);
+		this.setScheduleLineNo(null);
+		this.setInboundDelivery(null);
+		this.setPOItemReference(null);
+		this.setShipmentNo(null);
+		this.setPlant(null);
+		this.setStorageLocation(null);
+		this.setMatGrpDe(null);
+		this.setMaterialType(null);
+		this.setSKU(null);
+		this.setGridValue(null);
+		this.setStockCategory(null);
+		this.setHeaderText(null);
+		this.setLength(null);
+		this.setWidth(null);
+		this.setHeight(null);
+		this.setNetWeight(null);
+		this.setFactoryName(null);
+	}
+}

@@ -1,0 +1,79 @@
+package com.csfe.edison.business.dao;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
+import com.csfe.etl.business.entity.Activities;
+import com.csfe.etl.business.entity.BillOfLadingConsignments;
+import com.csfe.etl.business.entity.BillOfLadingContacts;
+import com.csfe.etl.business.entity.BillOfLadingItineraries;
+import com.csfe.etl.business.entity.BillOfLadingShipmentLoads;
+import com.csfe.etl.business.entity.BillOfLadings;
+import com.csfe.etl.business.entity.CargoDetails;
+import com.csfe.etl.business.entity.ConsignmentItineraries;
+import com.csfe.etl.business.entity.Consignments;
+import com.csfe.etl.business.entity.Consolidations;
+import com.csfe.etl.business.entity.ContainerItineraries;
+import com.csfe.etl.business.entity.Containers;
+import com.csfe.etl.business.entity.Itineraries;
+import com.csfe.etl.business.entity.MasterBillContacts;
+import com.csfe.etl.business.entity.MasterBillItineraries;
+import com.csfe.etl.business.entity.MasterBills;
+import com.csfe.etl.business.entity.ShipmentBillOfLadings;
+import com.csfe.etl.business.entity.ShipmentContacts;
+import com.csfe.etl.business.entity.ShipmentLoadDetails;
+import com.csfe.etl.business.entity.ShipmentLoads;
+import com.csfe.etl.business.entity.Shipments;
+import com.csfe.etl.business.entity.Cruise.CruiseOrders;
+import com.csfe.etl.business.entity.Cruise.CruiseOrderContacts;
+import com.csfe.etl.business.entity.Cruise.CruiseOrderWarehouse;
+import com.csfe.etl.business.entity.POFulfillment.POFulfillment;
+import com.csfe.etl.business.entity.master.Organizations;
+import com.csfe.etl.business.entity.po.PurchaseOrders;
+import com.csfe.etl.business.entity.po.Contacts;
+
+public interface EdisonDAO {
+	
+	public abstract List<Organizations> findOrganizations(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<Shipments> findShipments(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list, @Param("pocompanyCode")List pocompanyCode);
+	public abstract List<BillOfLadings> findBillOfLadings(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("list")List<String> list);
+	public abstract List<MasterBills> findMasterBills(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("list")List<String> list);
+	public abstract List<Containers> findContainers(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<Consolidations> findConsolidations(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<Consignments> findConsignments(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("list")List<String> list);
+	public abstract List<CargoDetails> findCargoDetails(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<ShipmentLoads> findShipmentLoads(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<ShipmentLoadDetails> findShipmentLoadDetails(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<BillOfLadingContacts> findBillOfLadingContacts(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("list")List<String> list);
+	public abstract List<MasterBillContacts> findMasterBillContacts(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	public abstract List<ShipmentContacts> findShipmentContacts(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("list")List<String> list);
+	public abstract List<Itineraries> findItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	
+	public abstract List<BillOfLadingConsignments> findBillOfLadingConsignments(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("sysdate")String sysdate);
+	public abstract List<BillOfLadingItineraries> findBillOfLadingItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<ShipmentBillOfLadings> findShipmentBillOfLadings(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<BillOfLadingShipmentLoads> findBillOfLadingShipmentLoads(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<ConsignmentItineraries> findConsignmentItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("sysdate")String sysdate);
+	public abstract List<ContainerItineraries> findContainerItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<MasterBillItineraries> findMasterBillItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	
+	public abstract List<BillOfLadingConsignments> findDeleteBillOfLadingConsignments(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("sysdate")String sysdate);
+	public abstract List<BillOfLadingItineraries> findDeleteBillOfLadingItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<ShipmentBillOfLadings> findDeleteShipmentBillOfLadings(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<BillOfLadingShipmentLoads> findDeleteBillOfLadingShipmentLoads(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<ConsignmentItineraries> findDeleteConsignmentItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("companyCode")List<String> companyCode, @Param("sysdate")String sysdate);
+	public abstract List<ContainerItineraries> findDeleteContainerItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	public abstract List<MasterBillItineraries> findDeleteMasterBillItineraries(@Param("db")String db, @Param("sysname")String sysname, @Param("sysdate")String sysdate);
+	
+	public abstract List<Activities> findActivities(@Param("db")String db, @Param("sysname")String sysname, @Param("list")List<String> list);
+	
+	public abstract List<PurchaseOrders> findPurchaseOrders(@Param("db")String db, @Param("sysname")String sysname,@Param("list")List<String> list);
+	public abstract List<Contacts> findContacts(@Param("db")String db, @Param("sysname")String sysname,@Param("list")List<String> list);
+	
+	public abstract List<CruiseOrders> findCruiseOrders(@Param("db")String db, @Param("sysname")String sysname,@Param("list")List<String> list);
+	public abstract List<CruiseOrderContacts> findCruiseOrderContacts(@Param("db")String db, @Param("sysname")String sysname,@Param("list")List<String> list);
+	public abstract List<CruiseOrderWarehouse> findCruiseOrderWarehouse(@Param("db")String db, @Param("sysname")String sysname,@Param("list")List<String> list);
+	
+	public abstract List<POFulfillment> findPOFulfillment(@Param("db")String db, @Param("sysname")String sysname, @Param("sono")String sono, @Param("seq")String seq);
+}

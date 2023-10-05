@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="azure-DB-PC"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:conf/db/dbAzure.properties</value>
+            </list>
+        </property>
+        <property name="placeholderPrefix" value="$azure{" />
+        <property name="placeholderSuffix" value="}" />
+    </bean>
+
+    <bean id="azureDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="$azure{DriverName}" />
+        <property name="url" value="$azure{URL};database=$azure{DataBaseName};instance=$azure{DataBaseInstance};appName=$azure{DataBaseAppName};autoReconnect=true;" />
+        <property name="username" value="$azure{USERNAME}" />
+        <property name="password" value="$azure{PASSWORD}" />
+        <property name="validationQuery" value="SELECT 1" />
+        <property name="testOnBorrow" value="true" />
+    </bean>
+
+    <bean id="azureSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="azureDataSource" />
+        <property name="configLocation" value="classpath:test/mybatis-test-config.xml" />
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.csfe.edison.business.dao" />
+        <property name="sqlSessionFactoryBeanName" value="azureSessionFactory" />
+    </bean>
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="azureDataSource" />
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager" />
+</beans>

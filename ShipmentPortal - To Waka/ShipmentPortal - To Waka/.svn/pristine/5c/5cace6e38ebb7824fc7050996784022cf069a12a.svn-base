@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<appender name="STDOUT" class="org.apache.log4j.ConsoleAppender">
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d %-6r [%15.15t] %-5p %30.30c %x - %m%n"/>
+		</layout>
+		<!--
+		<filter class="org.apache.log4j.varia.LevelRangeFilter">
+	            <param name="LevelMin" value="INFO"/>
+        	</filter>
+		-->
+	</appender>
+	<appender name="A1" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="File" value="C:/ProjectLogs/EDIGatewayLogs/web/EDIGateway-logs.log" />
+		<param name="DatePattern" value ="'.'yyyy-MM-dd" />
+		<param name="Append" value="true" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d %-6r [%15.15t] %-5p %30.30c %x - %m%n"/>
+		</layout>
+	</appender>
+	<root>
+		<priority value="INFO" />
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="A1" />
+	</root>
+	<!--
+	<logger name="org.hibernate.SQL" additivity="false" >
+		<level value="DEBUG" />    
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="A1" />
+	</logger>	
+	<logger name="org.hibernate.type" additivity="false" >
+		<level value="TRACE" />
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="A1" />
+	</logger>
+	-->
+</log4j:configuration>

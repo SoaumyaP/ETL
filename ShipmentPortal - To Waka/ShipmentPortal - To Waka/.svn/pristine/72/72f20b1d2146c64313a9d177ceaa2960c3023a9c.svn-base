@@ -1,0 +1,70 @@
+package com.csfe.edison.business.main;
+
+import com.csfe.common.CSFEException;
+import com.csfe.common.EmailNotification;
+import com.csfe.common.WarningNotification;
+import com.csfe.edison.business.service.UpdatePaymentStatusService;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+public class UpdatePaymentStatusRequest {
+    private static final Logger logger = Logger.getLogger(UpdatePaymentStatusRequest.class);
+
+    private UpdatePaymentStatusService service;
+
+    @Value("UpdatePaymentStatusService")
+    private String serviceName = "";
+
+    @Autowired
+    @Qualifier("WarningNotification")
+    private EmailNotification warningNotification;
+
+    public EmailNotification getWarningNotification() {
+        return warningNotification;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public UpdatePaymentStatusService getService() {
+        return service;
+    }
+
+    public void setService(UpdatePaymentStatusService service) {
+        this.service = service;
+    }
+
+    public static void main(String[] args) {
+        logger.info("Update Payment Status - Start Process\n");
+        ApplicationContext context = new ClassPathXmlApplicationContext(args[0]);
+        UpdatePaymentStatusRequest main = context.getBean(UpdatePaymentStatusRequest.class);
+
+        main.registerService(context, main.getServiceName());
+        main.processReq();
+
+        logger.info("Update Payment Status - End Process.");
+    }
+
+    private void processReq(){
+        try {
+            this.getService().updatePaymentStatus();
+        } catch (CSFEException e) {
+            logger.error(e);
+//            this.handleSendErrorNotification(e);
+        }
+    }
+
+    private void registerService(ApplicationContext context, String name) {
+        this.setService(context.getBean(name, UpdatePaymentStatusService.class));
+    }
+
+    protected void handleSendErrorNotification(Exception e) {
+        ((WarningNotification)this.getWarningNotification()).setException(e);
+        this.getWarningNotification().saveDeliveryReq();
+    }
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	   		http://www.springframework.org/schema/aop
+	   		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	   		http://www.springframework.org/schema/jee
+	   		http://www.springframework.org/schema/jee/spring-jee-3.2.xsd
+        	http://www.springframework.org/schema/lang
+        	http://www.springframework.org/schema/lang/spring-lang-3.2.xsd
+        	http://www.springframework.org/schema/tx
+        	http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+        	http://www.springframework.org/schema/util
+        	http://www.springframework.org/schema/util/spring-util-3.2.xsd
+			http://www.springframework.org/schema/mvc 
+			http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+	
+    <mvc:annotation-driven />
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.csfe" >
+		<context:exclude-filter type="aspectj" expression="com.csfe.etl.business.main.AzureMasterImportRequest"/>
+	</context:component-scan>
+	
+	<!-- Properties References --> 
+	<bean id="generalMsg-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:conf/config.properties</value>
+				<value>classpath:conf/etl/Colette/Azure-config.properties</value>
+				<value>classpath:conf/mail.properties</value>
+			</list>
+		</property>
+	</bean>
+	<import resource="classpath:conf/etl/Colette/AzureMap.xml" />
+	<import resource="classpath:conf/session/Colette/Azure-SessionFactory.xml" />
+	<import resource="classpath:conf/session/Colette/Email-SessionFactory.xml" />
+	<import resource="classpath:conf/session/Colette/INDIN-SessionFactory.xml" />
+
+	<bean id="AzureService" class="com.csfe.etl.business.service.AzureServiceImpl">
+		<property name="db" value="INDIN" />
+		<property name="sysname" value="COLETTE" />
+		<property name="companyCode" value="GACA0013" />
+		<property name="poCompanyCode" value="COBY0002" />
+	</bean>
+
+	<bean id="WarningDeliveryReq" class="com.csfe.common.business.entity.WarningDeliveryRequest">
+		<property name="reqID" value="0"/>
+	    <property name="systemID" value="${System.SystemID}"/>
+	    <property name="emailFrom" value="${mailServer.EmailFrom}"/>
+	    <property name="emailTo" value="${mailServer.EmailTo}"/>
+	    <property name="emailCC" value="${mailServer.EmailCC}"/>
+	    <property name="emailSubject" value="${mailServer.EmailSubject}"/>
+	    <property name="status" value="PEND"/>
+	    <property name="createdBy" value="${System.UserID}"/>
+	    <property name="updatedBy" value="${System.UserID}"/>
+	</bean>
+	<bean id="filterList" class="java.util.HashMap">
+		<constructor-arg>
+			<map key-type="java.lang.String" value-type="java.util.List">
+	        </map>
+		</constructor-arg>
+	</bean>
+
+	
+</beans>

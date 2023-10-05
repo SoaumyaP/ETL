@@ -1,0 +1,1180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.etl.business.dao.AzureDAO">
+	
+	<insert id="saveOrganizations" parameterType="Organizations">
+	INSERT INTO [dbo].[Organizations]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[Code]
+           ,[Name]
+           ,[ContactEmail]
+           ,[ContactName]
+           ,[ContactNumber]
+           ,[Address]
+           ,[EdisonInstanceId]
+           ,[EdisonCompanyCodeId]
+           ,[LocationId]
+           ,[OrganizationType]
+           ,[ParentId]
+           ,[Status])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{Code}
+           ,#{Name}
+           ,#{ContactEmail}
+           ,#{ContactName}
+           ,#{ContactNumber}
+           ,#{Address}
+           ,#{EdisonInstanceId}
+           ,#{EdisonCompanyCodeId}
+           ,#{LocationId}
+           ,#{OrganizationType}
+           ,#{ParentId}
+           ,#{Status})
+	</insert>
+	<update id="updateOrganizations" parameterType="Organizations">
+	UPDATE [dbo].[Organizations]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[Code] = #{Code}
+	      ,[Name] = #{Name}
+	      ,[ContactEmail] = #{ContactEmail}
+	      ,[ContactName] = #{ContactName}
+	      ,[ContactNumber] = #{ContactNumber}
+	      ,[Address] = #{Address}
+	      ,[EdisonInstanceId] = #{EdisonInstanceId}
+	      ,[EdisonCompanyCodeId] = #{EdisonCompanyCodeId}
+	      ,[LocationId] = #{LocationId}
+	      ,[OrganizationType] = #{OrganizationType}
+	      ,[ParentId] = #{ParentId}
+	      ,[Status] = #{Status}
+	 WHERE [Id] = #{id}
+	</update>
+ 	<insert id="saveShipment" parameterType="Shipments">
+       INSERT INTO [dbo].[Shipments] 
+       ([Id] 
+       ,[CreatedBy] 
+       ,[CreatedDate] 
+       ,[UpdatedBy] 
+       ,[UpdatedDate] 
+       ,[ShipmentNo] 
+       ,[CustomerReferenceNo] 
+       ,[ModeOfTransport] 
+       ,[CargoReadyDate] 
+       ,[BookingDate] 
+       ,[ShipmentType] 
+       ,[ShipFrom] 
+       ,[ShipFromETDDate] 
+       ,[ShipTo] 
+       ,[ShipToETADate] 
+       ,[Movement] 
+       ,[TotalPackage] 
+       ,[TotalPackageUOM] 
+       ,[TotalUnit]
+       ,[TotalUnitUOM] 
+       ,[TotalGrossWeight] 
+       ,[TotalGrossWeightUOM] 
+       ,[TotalNetWeight] 
+       ,[TotalNetWeightUOM] 
+       ,[TotalVolume] 
+       ,[TotalVolumeUOM] 
+       ,[ServiceType] 
+       ,[Incoterm] 
+       ,[Status] 
+       ,[IsFCL])
+        VALUES(#{Id} 
+	        ,#{CreatedBy} 
+	        ,#{CreatedDate} 
+	        ,#{UpdatedBy} 
+	        ,#{UpdatedDate} 
+	        ,#{ShipmentNo} 
+	        ,#{CustomerReferenceNo} 
+	        ,#{ModeOfTransport} 
+	        ,#{CargoReadyDate} 
+	        ,#{BookingDate} 
+	        ,#{ShipmentType} 
+	        ,#{ShipFrom} 
+	        ,#{ShipFromETDDate} 
+	        ,#{ShipTo} 
+	        ,#{ShipToETADate} 
+	        ,#{Movement} 
+	        ,#{TotalPackage}
+	        ,#{TotalPackageUOM}
+	        ,#{TotalUnit}
+	        ,#{TotalUnitUOM}
+	        ,#{TotalGrossWeight}
+	        ,#{TotalGrossWeightUOM}
+	        ,#{TotalNetWeight} 
+	        ,#{TotalNetWeightUOM}
+	        ,#{TotalVolume}
+	        ,#{TotalVolumeUOM}
+	        ,#{ServiceType}
+	        ,#{Incoterm}
+	        ,#{Status}
+	        ,#{IsFCL})
+    </insert>
+    <update id="updateShipment" parameterType="Shipments">
+		UPDATE [dbo].[Shipments]   
+		SET [UpdatedBy] = #{UpdatedBy}      
+		,[UpdatedDate] = #{UpdatedDate}      
+		,[ShipmentNo] = #{ShipmentNo}      
+		,[CustomerReferenceNo] = #{CustomerReferenceNo}      
+		,[ModeOfTransport] = #{ModeOfTransport}      
+		,[CargoReadyDate] = #{CargoReadyDate}      
+		,[BookingDate] = #{BookingDate}      
+		,[ShipmentType] = #{ShipmentType}      
+		,[ShipFrom] = #{ShipFrom}      
+		,[ShipFromETDDate] = #{ShipFromETDDate}      
+		,[ShipTo] = #{ShipTo}      
+		,[ShipToETADate] = #{ShipToETADate}      
+		,[Movement] = #{Movement}      
+		,[TotalPackage] = #{TotalPackage}      
+		,[TotalPackageUOM] = #{TotalPackageUOM}      
+		,[TotalUnit] = #{TotalUnit}      
+		,[TotalUnitUOM] = #{TotalUnitUOM}      
+		,[TotalGrossWeight] = #{TotalGrossWeight}      
+		,[TotalGrossWeightUOM] = #{TotalGrossWeightUOM}      
+		,[TotalNetWeight] = #{TotalNetWeight}      
+		,[TotalNetWeightUOM] = #{TotalNetWeightUOM}      
+		,[TotalVolume] = #{TotalVolume}      
+		,[TotalVolumeUOM] = #{TotalVolumeUOM}      
+		,[ServiceType] = #{ServiceType}      
+		,[Incoterm] = #{Incoterm}      
+		,[Status] = #{Status}      
+		,[IsFCL] = #{IsFCL}
+		 WHERE [Id] = #{id}
+	</update>
+	<insert id="saveBillOfLadings" parameterType="BillOfLadings">   
+		INSERT INTO [dbo].[BillOfLadings]           
+				([Id]
+				,[CreatedBy]
+				,[CreatedDate]           
+				,[UpdatedBy]           
+				,[UpdatedDate]           
+				,[BillOfLadingNo]           
+				,[ExecutionAgentId]           
+				,[BillOfLadingType]           
+				,[MainCarrier]           
+				,[MainVessel]           
+				,[TotalGrossWeight]           
+				,[TotalGrossWeightUOM]           
+				,[TotalNetWeight]           
+				,[TotalNetWeightUOM]           
+				,[TotalPackage]           
+				,[TotalPackageUOM]           
+				,[TotalVolume]           
+				,[TotalVolumeUOM]           
+				,[JobNumber]           
+				,[IssueDate]           
+				,[ModeOfTransport]           
+				,[ShipFrom]           
+				,[ShipFromETDDate]           
+				,[ShipTo]           
+				,[ShipToETADate]           
+				,[Movement]           
+				,[Incoterm])    
+			 VALUES 
+			 	(#{Id}           
+			 	,#{CreatedBy}           
+			 	,#{CreatedDate}           
+			 	,#{UpdatedBy}           
+			 	,#{UpdatedDate}           
+			 	,#{BillOfLadingNo}           
+			 	,#{ExecutionAgentId}           
+			 	,#{BillOfLadingType}           
+			 	,#{MainCarrier}           
+			 	,#{MainVessel}           
+			 	,#{TotalGrossWeight}           
+			 	,#{TotalGrossWeightUOM}           
+			 	,#{TotalNetWeight}           
+			 	,#{TotalNetWeightUOM}           
+			 	,#{TotalPackage}           
+			 	,#{TotalPackageUOM}           
+			 	,#{TotalVolume}           
+			 	,#{TotalVolumeUOM}           
+			 	,#{JobNumber}           
+			 	,#{IssueDate}           
+			 	,#{ModeOfTransport}           
+			 	,#{ShipFrom}           
+			 	,#{ShipFromETDDate}           
+			 	,#{ShipTo}           
+			 	,#{ShipToETADate}           
+			 	,#{Movement}           
+			 	,#{Incoterm})
+    </insert>
+    <update id="updateBillOfLadings" parameterType="BillOfLadings">
+	UPDATE [dbo].[BillOfLadings]  
+		SET 
+		 [UpdatedBy] = #{UpdatedBy}      
+		,[UpdatedDate] = #{UpdatedDate}      
+		,[BillOfLadingNo] = #{BillOfLadingNo}      
+		,[ExecutionAgentId] = #{ExecutionAgentId}      
+		,[BillOfLadingType] = #{BillOfLadingType}      
+		,[MainCarrier] = #{MainCarrier}      
+		,[MainVessel] = #{MainVessel}      
+		,[TotalGrossWeight] = #{TotalGrossWeight}      
+		,[TotalGrossWeightUOM] = #{TotalGrossWeightUOM}      
+		,[TotalNetWeight] = #{TotalNetWeight}      
+		,[TotalNetWeightUOM] = #{TotalNetWeightUOM}      
+		,[TotalPackage] = #{TotalPackage}      
+		,[TotalPackageUOM] = #{TotalPackageUOM}      
+		,[TotalVolume] = #{TotalVolume}      
+		,[TotalVolumeUOM] = #{TotalVolumeUOM}      
+		,[JobNumber] = #{JobNumber}      
+		,[IssueDate] = #{IssueDate}      
+		,[ModeOfTransport] = #{ModeOfTransport}      
+		,[ShipFrom] = #{ShipFrom}      
+		,[ShipFromETDDate] = #{ShipFromETDDate}      
+		,[ShipTo] = #{ShipTo}      
+		,[ShipToETADate] = #{ShipToETADate}      
+		,[Movement] = #{Movement}      
+		,[Incoterm] = #{Incoterm} 
+		WHERE  [Id] = #{Id}
+	</update>
+	<insert id="saveMasterBills" parameterType="MasterBills">   
+		INSERT INTO [dbo].[MasterBills]
+	           ([Id]
+	           ,[CreatedBy]
+	           ,[CreatedDate]
+	           ,[UpdatedBy]
+	           ,[UpdatedDate]
+	           ,[ExecutionAgentId]
+	           ,[MasterBillOfLadingNo]
+	           ,[MasterBillOfLadingType]
+	           ,[ModeOfTransport]
+	           ,[Movement]
+	           ,[CarrierBookingNo]
+	           ,[CarrierContractNo]
+	           ,[CarrierName]
+	           ,[SCAC]
+	           ,[AirlineCode]
+	           ,[VesselFlight]
+	           ,[Vessel]
+	           ,[Voyage]
+	           ,[FlightNo]
+	           ,[PlaceOfReceipt]
+	           ,[PortOfLoading]
+	           ,[PortOfDischarge]
+	           ,[PlaceOfDelivery]
+	           ,[PlaceOfIssue]
+	           ,[IssueDate]
+	           ,[OnBoardDate])
+	     VALUES
+	           (#{Id}
+	           ,#{CreatedBy}
+	           ,#{CreatedDate}
+	           ,#{UpdatedBy}
+	           ,#{UpdatedDate}
+	           ,#{ExecutionAgentId}
+	           ,#{MasterBillOfLadingNo}
+	           ,#{MasterBillOfLadingType}
+	           ,#{ModeOfTransport}
+	           ,#{Movement}
+	           ,#{CarrierBookingNo}
+	           ,#{CarrierContractNo}
+	           ,#{CarrierName}
+	           ,#{SCAC}
+	           ,#{AirlineCode}
+	           ,#{VesselFlight}
+	           ,#{Vessel}
+	           ,#{Voyage}
+	           ,#{FlightNo}
+	           ,#{PlaceOfReceipt}
+	           ,#{PortOfLoading}
+	           ,#{PortOfDischarge}
+	           ,#{PlaceOfDelivery}
+	           ,#{PlaceOfIssue}
+	           ,#{IssueDate}
+	           ,#{OnBoardDate})
+    </insert>
+    <update id="updateMasterBills" parameterType="MasterBills">
+	   UPDATE [dbo].[MasterBills]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ExecutionAgentId] = #{ExecutionAgentId}
+	      ,[MasterBillOfLadingNo] = #{MasterBillOfLadingNo}
+	      ,[MasterBillOfLadingType] = #{MasterBillOfLadingType}
+	      ,[ModeOfTransport] = #{ModeOfTransport}
+	      ,[Movement] = #{Movement}
+	      ,[CarrierBookingNo] = #{CarrierBookingNo}
+	      ,[CarrierContractNo] = #{CarrierContractNo}
+	      ,[CarrierName] = #{CarrierName}
+	      ,[SCAC] = #{SCAC}
+	      ,[AirlineCode] = #{AirlineCode}
+	      ,[VesselFlight] = #{VesselFlight}
+	      ,[Vessel] = #{Vessel}
+	      ,[Voyage] = #{Voyage}
+	      ,[FlightNo] = #{FlightNo}
+	      ,[PlaceOfReceipt] = #{PlaceOfReceipt}
+	      ,[PortOfLoading] = #{PortOfLoading}
+	      ,[PortOfDischarge] = #{PortOfDischarge}
+	      ,[PlaceOfDelivery] = #{PlaceOfDelivery}
+	      ,[PlaceOfIssue] = #{PlaceOfIssue}
+	      ,[IssueDate] = #{IssueDate}
+	      ,[OnBoardDate] = #{OnBoardDate}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveContainers" parameterType="Containers">   
+		INSERT INTO [dbo].[Containers]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ContainerNo]
+           ,[ContainerType]
+           ,[ShipFrom]
+           ,[ShipFromETDDate]
+           ,[ShipTo]
+           ,[ShipToETADate]
+           ,[SealNo]
+           ,[Movement]
+           ,[TotalGrossWeight]
+           ,[TotalGrossWeightUOM]
+           ,[TotalNetWeight]
+           ,[TotalNetWeightUOM]
+           ,[TotalPackage]
+           ,[TotalPackageUOM]
+           ,[TotalVolume]
+           ,[TotalVolumeUOM]
+           ,[IsFCL])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ContainerNo}
+           ,#{ContainerType}
+           ,#{ShipFrom}
+           ,#{ShipFromETDDate}
+           ,#{ShipTo}
+           ,#{ShipToETADate}
+           ,#{SealNo}
+           ,#{Movement}
+           ,#{TotalGrossWeight}
+           ,#{TotalGrossWeightUOM}
+           ,#{TotalNetWeight}
+           ,#{TotalNetWeightUOM}
+           ,#{TotalPackage}
+           ,#{TotalPackageUOM}
+           ,#{TotalVolume}
+           ,#{TotalVolumeUOM}
+           ,#{IsFCL})
+    </insert>
+    <update id="updateContainers" parameterType="Containers">
+	UPDATE [dbo].[Containers]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ContainerNo] = #{ContainerNo}
+	      ,[ContainerType] = #{ContainerType}
+	      ,[ShipFrom] = #{ShipFrom}
+	      ,[ShipFromETDDate] = #{ShipFromETDDate}
+	      ,[ShipTo] = #{ShipTo}
+	      ,[ShipToETADate] = #{ShipToETADate}
+	      ,[SealNo] = #{SealNo}
+	      ,[Movement] = #{Movement}
+	      ,[TotalGrossWeight] = #{TotalGrossWeight}
+	      ,[TotalGrossWeightUOM] = #{TotalGrossWeightUOM}
+	      ,[TotalNetWeight] = #{TotalNetWeight}
+	      ,[TotalNetWeightUOM] = #{TotalNetWeightUOM}
+	      ,[TotalPackage] = #{TotalPackage}
+	      ,[TotalPackageUOM] = #{TotalPackageUOM}
+	      ,[TotalVolume] = #{TotalVolume}
+	      ,[TotalVolumeUOM] = #{TotalVolumeUOM}
+	      ,[IsFCL] = #{IsFCL}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveConsolidations" parameterType="Consolidations">    
+	INSERT INTO [dbo].[Consolidations]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ContainerNo]
+           ,[SealNo]
+           ,[ContainerId]
+           ,[LoadPlanNo]
+           ,[ModeOfTransport]
+           ,[EquipmentType]
+           ,[OriginCFS]
+           ,[CFSCutoffDate]
+           ,[TotalGrossWeight]
+           ,[TotalGrossWeightUOM]
+           ,[TotalNetWeight]
+           ,[TotalNetWeightUOM]
+           ,[TotalPackage]
+           ,[TotalPackageUOM]
+           ,[TotalVolume]
+           ,[TotalVolumeUOM])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ContainerNo}
+           ,#{SealNo}
+           ,#{ContainerId}
+           ,#{LoadPlanNo}
+           ,#{ModeOfTransport}
+           ,#{EquipmentType}
+           ,#{OriginCFS}
+           ,#{CFSCutoffDate}
+           ,#{TotalGrossWeight}
+           ,#{TotalGrossWeightUOM}
+           ,#{TotalNetWeight}
+           ,#{TotalNetWeightUOM}
+           ,#{TotalPackage}
+           ,#{TotalPackageUOM}
+           ,#{TotalVolume}
+           ,#{TotalVolumeUOM})
+    </insert>
+    <update id="updateConsolidations" parameterType="Consolidations">
+	UPDATE [dbo].[Consolidations]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ContainerNo] = #{ContainerNo}
+	      ,[SealNo] = #{SealNo}
+	      ,[ContainerId] = #{ContainerId}
+	      ,[LoadPlanNo] = #{LoadPlanNo}
+	      ,[ModeOfTransport] = #{ModeOfTransport}
+	      ,[EquipmentType] = #{EquipmentType}
+	      ,[OriginCFS] = #{OriginCFS}
+	      ,[CFSCutoffDate] = #{CFSCutoffDate}
+	      ,[TotalGrossWeight] = #{TotalGrossWeight}
+	      ,[TotalGrossWeightUOM] = #{TotalGrossWeightUOM}
+	      ,[TotalNetWeight] = #{TotalNetWeight}
+	      ,[TotalNetWeightUOM] = #{TotalNetWeightUOM}
+	      ,[TotalPackage] = #{TotalPackage}
+	      ,[TotalPackageUOM] = #{TotalPackageUOM}
+	      ,[TotalVolume] = #{TotalVolume}
+	      ,[TotalVolumeUOM] = #{TotalVolumeUOM}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveConsignments" parameterType="Consignments">   
+	INSERT INTO [dbo].[Consignments]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[ConsignmentType]
+           ,[ConsignmentDate]
+           ,[ExecutionAgentId]
+           ,[ShipFrom]
+           ,[ShipFromETDDate]
+           ,[ShipTo]
+           ,[ShipToETADate]
+           ,[Status]
+           ,[ModeOfTransport]
+           ,[Movement]
+           ,[Unit]
+           ,[UnitUOM]
+           ,[Package]
+           ,[PackageUOM]
+           ,[Volume]
+           ,[VolumeUOM]
+           ,[GrossWeight]
+           ,[GrossWeightUOM]
+           ,[NetWeight]
+           ,[NetWeightUOM]
+           ,[HouseBillId]
+           ,[MasterBillId]
+           ,[TriangleTradeFlag]
+           ,[MemoBOLFlag]
+           ,[Sequence])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{ConsignmentType}
+           ,#{ConsignmentDate}
+           ,#{ExecutionAgentId}
+           ,#{ShipFrom}
+           ,#{ShipFromETDDate}
+           ,#{ShipTo}
+           ,#{ShipToETADate}
+           ,#{Status}
+           ,#{ModeOfTransport}
+           ,#{Movement}
+           ,#{Unit}
+           ,#{UnitUOM}
+           ,#{Package}
+           ,#{PackageUOM}
+           ,#{Volume}
+           ,#{VolumeUOM}
+           ,#{GrossWeight}
+           ,#{GrossWeightUOM}
+           ,#{NetWeight}
+           ,#{NetWeightUOM}
+           ,#{HouseBillId}
+           ,#{MasterBillId}
+           ,#{TriangleTradeFlag}
+           ,#{MemoBOLFlag}
+           ,#{Sequence})
+    </insert>
+    <update id="updateConsignments" parameterType="Consignments">
+	UPDATE [dbo].[Consignments]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[ConsignmentType] = #{ConsignmentType}
+	      ,[ConsignmentDate] = #{ConsignmentDate}
+	      ,[ExecutionAgentId] = #{ExecutionAgentId}
+	      ,[ShipFrom] = #{ShipFrom}
+	      ,[ShipFromETDDate] = #{ShipFromETDDate}
+	      ,[ShipTo] = #{ShipTo}
+	      ,[ShipToETADate] = #{ShipToETADate}
+	      ,[Status] = #{Status}
+	      ,[ModeOfTransport] = #{ModeOfTransport}
+	      ,[Movement] = #{Movement}
+	      ,[Unit] = #{Unit}
+	      ,[UnitUOM] = #{UnitUOM}
+	      ,[Package] = #{Package}
+	      ,[PackageUOM] = #{PackageUOM}
+	      ,[Volume] = #{Volume}
+	      ,[VolumeUOM] = #{VolumeUOM}
+	      ,[GrossWeight] = #{GrossWeight}
+	      ,[GrossWeightUOM] = #{GrossWeightUOM}
+	      ,[NetWeight] = #{NetWeight}
+	      ,[NetWeightUOM] = #{NetWeightUOM}
+	      ,[HouseBillId] = #{HouseBillId}
+	      ,[MasterBillId] = #{MasterBillId}
+	      ,[TriangleTradeFlag] = #{TriangleTradeFlag}
+	      ,[MemoBOLFlag] = #{MemoBOLFlag}
+	      ,[Sequence] = #{Sequence}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveCargoDetails" parameterType="CargoDetails">    
+	INSERT INTO [dbo].[CargoDetails]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[Sequence]
+           ,[ShippingMarks]
+           ,[Description]
+           ,[Unit]
+           ,[UnitUOM]
+           ,[Package]
+           ,[PackageUOM]
+           ,[Volume]
+           ,[VolumeUOM]
+           ,[GrossWeight]
+           ,[GrossWeightUOM]
+           ,[NetWeight]
+           ,[NetWeightUOM]
+           ,[Commodity]
+           ,[HSCode]
+           ,[ProductNumber]
+           ,[CountryOfOrigin])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{Sequence}
+           ,#{ShippingMarks}
+           ,#{Description}
+           ,#{Unit}
+           ,#{UnitUOM}
+           ,#{Package}
+           ,#{PackageUOM}
+           ,#{Volume}
+           ,#{VolumeUOM}
+           ,#{GrossWeight}
+           ,#{GrossWeightUOM}
+           ,#{NetWeight}
+           ,#{NetWeightUOM}
+           ,#{Commodity}
+           ,#{HSCode}
+           ,#{ProductNumber}
+           ,#{CountryOfOrigin})
+    </insert>
+    <update id="updateCargoDetails" parameterType="CargoDetails">
+	UPDATE [dbo].[CargoDetails]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[Sequence] = #{Sequence}
+	      ,[ShippingMarks] = #{ShippingMarks}
+	      ,[Description] = #{Description}
+	      ,[Unit] = #{Unit}
+	      ,[UnitUOM] = #{UnitUOM}
+	      ,[Package] = #{Package}
+	      ,[PackageUOM] = #{PackageUOM}
+	      ,[Volume] = #{Volume}
+	      ,[VolumeUOM] = #{VolumeUOM}
+	      ,[GrossWeight] = #{GrossWeight}
+	      ,[GrossWeightUOM] = #{GrossWeightUOM}
+	      ,[NetWeight] = #{NetWeight}
+	      ,[NetWeightUOM] = #{NetWeightUOM}
+	      ,[Commodity] = #{Commodity}
+	      ,[HSCode] = #{HSCode}
+	      ,[ProductNumber] = #{ProductNumber}
+	      ,[CountryOfOrigin] = #{CountryOfOrigin}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveShipmentLoads" parameterType="ShipmentLoads"> 
+	INSERT INTO [dbo].[ShipmentLoads]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[ConsignmentId]
+           ,[ConsolidationId]
+           ,[ContainerId]
+           ,[ModeOfTransport]
+           ,[IsFCL]
+           ,[LoadingPlace]
+           ,[LoadingPartyId]
+           ,[EquipmentType])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{ConsignmentId}
+           ,#{ConsolidationId}
+           ,#{ContainerId}
+           ,#{ModeOfTransport}
+           ,#{IsFCL}
+           ,#{LoadingPlace}
+           ,#{LoadingPartyId}
+           ,#{EquipmentType})
+    </insert>
+    <update id="updateShipmentLoads" parameterType="ShipmentLoads">
+	UPDATE [dbo].[ShipmentLoads]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[ConsignmentId] = #{ConsignmentId}
+	      ,[ConsolidationId] = #{ConsolidationId}
+	      ,[ContainerId] = #{ContainerId}
+	      ,[ModeOfTransport] = #{ModeOfTransport}
+	      ,[IsFCL] = #{IsFCL}
+	      ,[LoadingPlace] = #{LoadingPlace}
+	      ,[LoadingPartyId] = #{LoadingPartyId}
+	      ,[EquipmentType] = #{EquipmentType}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveShipmentLoadDetails" parameterType="ShipmentLoadDetails"> 
+	INSERT INTO [dbo].[ShipmentLoadDetails]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[ConsignmentId]
+           ,[CargoDetailId]
+           ,[ShipmentLoadId]
+           ,[ContainerId]
+           ,[ConsolidationId]
+           ,[Package]
+           ,[PackageUOM]
+           ,[Unit]
+           ,[UnitUOM]
+           ,[Volume]
+           ,[VolumeUOM]
+           ,[GrossWeight]
+           ,[GrossWeightUOM]
+           ,[NetWeight]
+           ,[NetWeightUOM])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{ConsignmentId}
+           ,#{CargoDetailId}
+           ,#{ShipmentLoadId}
+           ,#{ContainerId}
+           ,#{ConsolidationId}
+           ,#{Package}
+           ,#{PackageUOM}
+           ,#{Unit}
+           ,#{UnitUOM}
+           ,#{Volume}
+           ,#{VolumeUOM}
+           ,#{GrossWeight}
+           ,#{GrossWeightUOM}
+           ,#{NetWeight}
+           ,#{NetWeightUOM})
+    </insert>
+    <update id="updateShipmentLoadDetails" parameterType="ShipmentLoadDetails">
+	UPDATE [dbo].[ShipmentLoadDetails]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[ConsignmentId] = #{ConsignmentId}
+	      ,[CargoDetailId] = #{CargoDetailId}
+	      ,[ShipmentLoadId] = #{ShipmentLoadId}
+	      ,[ContainerId] = #{ContainerId}
+	      ,[ConsolidationId] = #{ConsolidationId}
+	      ,[Package] = #{Package}
+	      ,[PackageUOM] = #{PackageUOM}
+	      ,[Unit] = #{Unit}
+	      ,[UnitUOM] = #{UnitUOM}
+	      ,[Volume] = #{Volume}
+	      ,[VolumeUOM] = #{VolumeUOM}
+	      ,[GrossWeight] = #{GrossWeight}
+	      ,[GrossWeightUOM] = #{GrossWeightUOM}
+	      ,[NetWeight] = #{NetWeight}
+	      ,[NetWeightUOM] = #{NetWeightUOM}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveBillOfLadingContacts" parameterType="BillOfLadingContacts"> 
+	INSERT INTO [dbo].[BillOfLadingContacts]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[BillOfLadingId]
+           ,[OrganizationId]
+           ,[OrganizationRole]
+           ,[CompanyName]
+           ,[Address]
+           ,[ContactName]
+           ,[ContactNumber]
+           ,[ContactEmail])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{BillOfLadingId}
+           ,#{OrganizationId}
+           ,#{OrganizationRole}
+           ,#{CompanyName}
+           ,#{Address}
+           ,#{ContactName}
+           ,#{ContactNumber}
+           ,#{ContactEmail})
+	</insert>
+    <update id="updateBillOfLadingContacts" parameterType="BillOfLadingContacts">
+    UPDATE [dbo].[BillOfLadingContacts]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[BillOfLadingId] = #{BillOfLadingId}
+	      ,[OrganizationId] = #{OrganizationId}
+	      ,[OrganizationRole] = #{OrganizationRole}
+	      ,[CompanyName] = #{CompanyName}
+	      ,[Address] = #{Address}
+	      ,[ContactName] = #{ContactName}
+	      ,[ContactNumber] = #{ContactNumber}
+	      ,[ContactEmail] = #{ContactEmail}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveMasterBillContacts" parameterType="MasterBillContacts"> 
+	INSERT INTO [dbo].[MasterBillContacts]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[MasterBillOfLadingId]
+           ,[OrganizationId]
+           ,[OrganizationRole]
+           ,[CompanyName]
+           ,[Address]
+           ,[ContactName]
+           ,[ContactNumber]
+           ,[ContactEmail])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{MasterBillOfLadingId}
+           ,#{OrganizationId}
+           ,#{OrganizationRole}
+           ,#{CompanyName}
+           ,#{Address}
+           ,#{ContactName}
+           ,#{ContactNumber}
+           ,#{ContactEmail})
+    </insert>
+    <update id="updateMasterBillContacts" parameterType="MasterBillContacts">
+	UPDATE [dbo].[MasterBillContacts]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[MasterBillOfLadingId] = #{MasterBillOfLadingId}
+	      ,[OrganizationId] = #{OrganizationId}
+	      ,[OrganizationRole] = #{OrganizationRole}
+	      ,[CompanyName] = #{CompanyName}
+	      ,[Address] = #{Address}
+	      ,[ContactName] = #{ContactName}
+	      ,[ContactNumber] = #{ContactNumber}
+	      ,[ContactEmail] = #{ContactEmail}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveShipmentContacts" parameterType="ShipmentContacts"> 
+	INSERT INTO [dbo].[ShipmentContacts]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[OrganizationId]
+           ,[OrganizationRole]
+           ,[CompanyName]
+           ,[Address]
+           ,[ContactName]
+           ,[ContactNumber]
+           ,[ContactEmail])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{OrganizationId}
+           ,#{OrganizationRole}
+           ,#{CompanyName}
+           ,#{Address}
+           ,#{ContactName}
+           ,#{ContactNumber}
+           ,#{ContactEmail})
+    </insert>
+    <update id="updateShipmentContacts" parameterType="ShipmentContacts">
+	UPDATE [dbo].[ShipmentContacts]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[OrganizationId] = #{OrganizationId}
+	      ,[OrganizationRole] = #{OrganizationRole}
+	      ,[CompanyName] = #{CompanyName}
+	      ,[Address] = #{Address}
+	      ,[ContactName] = #{ContactName}
+	      ,[ContactNumber] = #{ContactNumber}
+	      ,[ContactEmail] = #{ContactEmail}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveItineraries" parameterType="Itineraries"> 
+	INSERT INTO [dbo].[Itineraries]
+           ([Id]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[Sequence]
+           ,[ModeOfTransport]
+           ,[CarrierName]
+           ,[SCAC]
+           ,[AirlineCode]
+           ,[VesselFlight]
+           ,[VesselName]
+           ,[Voyage]
+           ,[FlightNumber]
+           ,[LoadingPort]
+           ,[ETDDate]
+           ,[ETADate]
+           ,[DischargePort]
+           ,[Status])
+     VALUES
+           (#{Id}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{Sequence}
+           ,#{ModeOfTransport}
+           ,#{CarrierName}
+           ,#{SCAC}
+           ,#{AirlineCode}
+           ,#{VesselFlight}
+           ,#{VesselName}
+           ,#{Voyage}
+           ,#{FlightNumber}
+           ,#{LoadingPort}
+           ,#{ETDDate}
+           ,#{ETADate}
+           ,#{DischargePort}
+           ,#{Status})
+    </insert>
+    <update id="updateItineraries" parameterType="Itineraries">
+	UPDATE [dbo].[Itineraries]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[Sequence] = #{Sequence}
+	      ,[ModeOfTransport] = #{ModeOfTransport}
+	      ,[CarrierName] = #{CarrierName}
+	      ,[SCAC] = #{SCAC}
+	      ,[AirlineCode] = #{AirlineCode}
+	      ,[VesselFlight] = #{VesselFlight}
+	      ,[VesselName] = #{VesselName}
+	      ,[Voyage] = #{Voyage}
+	      ,[FlightNumber] = #{FlightNumber}
+	      ,[LoadingPort] = #{LoadingPort}
+	      ,[ETDDate] = #{ETDDate}
+	      ,[ETADate] = #{ETADate}
+	      ,[DischargePort] = #{DischargePort}
+	      ,[Status] = #{Status}
+	 WHERE [Id] = #{Id}
+	</update>
+	
+	<insert id="saveBillOfLadingConsignments" parameterType="BillOfLadingConsignments"> 
+	INSERT INTO [dbo].[BillOfLadingConsignments]
+           ([ConsignmentId]
+           ,[BillOfLadingId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId])
+     VALUES
+           (#{ConsignmentId}
+           ,#{BillOfLadingId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId})
+    </insert>
+    <update id="updateBillOfLadingConsignments" parameterType="BillOfLadingConsignments">
+	UPDATE [dbo].[BillOfLadingConsignments]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	 WHERE [ConsignmentId] = #{ConsignmentId}
+     AND [BillOfLadingId] = #{BillOfLadingId}
+	</update>
+	<delete id="deleteBillOfLadingConsignments" parameterType="BillOfLadingConsignments">
+        DELETE FROM [dbo].[BillOfLadingConsignments] where [ConsignmentId] = #{ConsignmentId} AND [BillOfLadingId] = #{BillOfLadingId} AND [ShipmentId] = #{ShipmentId}
+    </delete>
+	
+	<insert id="saveBillOfLadingItineraries" parameterType="BillOfLadingItineraries"> 
+	INSERT INTO [dbo].[BillOfLadingItineraries]
+           ([ItineraryId]
+           ,[BillOfLadingId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[MasterBillOfLadingId])
+     VALUES
+           (#{ItineraryId}
+           ,#{BillOfLadingId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{MasterBillOfLadingId})
+	</insert>
+    <update id="updateBillOfLadingItineraries" parameterType="BillOfLadingItineraries">
+    UPDATE [dbo].[BillOfLadingItineraries]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[MasterBillOfLadingId] = #{MasterBillOfLadingId}
+	 WHERE [ItineraryId] = #{ItineraryId}
+	 AND [BillOfLadingId] = #{BillOfLadingId}
+	</update>
+	<delete id="deleteBillOfLadingItineraries" parameterType="BillOfLadingItineraries">
+        DELETE FROM [dbo].[BillOfLadingItineraries] where [ItineraryId] = #{ItineraryId} AND [BillOfLadingId] = #{BillOfLadingId} AND [MasterBillOfLadingId] = #{MasterBillOfLadingId}
+    </delete>
+	
+	<insert id="saveShipmentBillOfLadings" parameterType="ShipmentBillOfLadings"> 
+	INSERT INTO [dbo].[ShipmentBillOfLadings]
+           ([ShipmentId]
+           ,[BillOfLadingId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate])
+     VALUES
+           (#{ShipmentId}
+           ,#{BillOfLadingId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate})
+    </insert>
+    <update id="updateShipmentBillOfLadings" parameterType="ShipmentBillOfLadings">
+	UPDATE [dbo].[ShipmentBillOfLadings]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	 WHERE [ShipmentId] = #{ShipmentId}
+	 AND [BillOfLadingId] = #{BillOfLadingId}
+	</update>
+	<delete id="deleteShipmentBillOfLadings" parameterType="ShipmentBillOfLadings">
+        DELETE FROM [dbo].[ShipmentBillOfLadings] where [ShipmentId] = #{ShipmentId} AND [BillOfLadingId] = #{BillOfLadingId}
+    </delete>
+	
+	<insert id="saveBillOfLadingShipmentLoads" parameterType="BillOfLadingShipmentLoads"> 
+	INSERT INTO [dbo].[BillOfLadingShipmentLoads]
+           ([BillOfLadingId]
+           ,[ShipmentLoadId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ContainerId]
+           ,[ConsolidationId]
+           ,[MasterBillOfLadingId]
+           ,[IsFCL])
+     VALUES
+           (#{BillOfLadingId}
+           ,#{ShipmentLoadId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ContainerId}
+           ,#{ConsolidationId}
+           ,#{MasterBillOfLadingId}
+           ,#{IsFCL})
+    </insert>
+    <update id="updateBillOfLadingShipmentLoads" parameterType="BillOfLadingShipmentLoads">
+	UPDATE [dbo].[BillOfLadingShipmentLoads]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ContainerId] = #{ContainerId}
+	      ,[ConsolidationId] = #{ConsolidationId}
+	      ,[MasterBillOfLadingId] = #{MasterBillOfLadingId}
+	      ,[IsFCL] = #{IsFCL}
+	 WHERE [BillOfLadingId] = #{BillOfLadingId}
+	 AND [ShipmentLoadId] = #{ShipmentLoadId}
+	</update>
+	<delete id="deleteBillOfLadingShipmentLoads" parameterType="BillOfLadingShipmentLoads">
+        DELETE FROM [dbo].[BillOfLadingShipmentLoads] where [BillOfLadingId] = #{BillOfLadingId}
+         AND [ShipmentLoadId] = #{ShipmentLoadId}
+         AND [ContainerId] = #{ContainerId}
+	     AND [ConsolidationId] = #{ConsolidationId}
+	     AND [MasterBillOfLadingId] = #{MasterBillOfLadingId}
+    </delete>
+	
+	<insert id="saveConsignmentItineraries" parameterType="ConsignmentItineraries"> 
+	INSERT INTO [dbo].[ConsignmentItineraries]
+           ([ConsignmentId]
+           ,[ItineraryId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate]
+           ,[ShipmentId]
+           ,[MasterBillId]
+           ,[Sequence])
+     VALUES
+           (#{ConsignmentId}
+           ,#{ItineraryId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate}
+           ,#{ShipmentId}
+           ,#{MasterBillId}
+           ,#{Sequence})
+    </insert>
+    <update id="updateConsignmentItineraries" parameterType="ConsignmentItineraries">
+	UPDATE [dbo].[ConsignmentItineraries]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	      ,[ShipmentId] = #{ShipmentId}
+	      ,[MasterBillId] = #{MasterBillId}
+	      ,[Sequence] = #{Sequence}
+	 WHERE [ConsignmentId] = #{ConsignmentId}
+	 AND [ItineraryId] = #{ItineraryId}
+	</update>
+	<delete id="deleteConsignmentItineraries" parameterType="ConsignmentItineraries">
+        DELETE FROM [dbo].[ConsignmentItineraries] where [ConsignmentId] = #{ConsignmentId}
+         AND [ItineraryId] = #{ItineraryId}
+         AND [ShipmentId] = #{ShipmentId}
+	     AND [MasterBillId] = #{MasterBillId}
+    </delete>
+	
+	<insert id="saveContainerItineraries" parameterType="ContainerItineraries"> 
+	INSERT INTO [dbo].[ContainerItineraries]
+           ([ItineraryId]
+           ,[ContainerId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate])
+     VALUES
+           (#{ItineraryId}
+           ,#{ContainerId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate})
+    </insert>
+    <update id="updateContainerItineraries" parameterType="ContainerItineraries">
+	UPDATE [dbo].[ContainerItineraries]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	 WHERE [ItineraryId] = #{ItineraryId}
+	 AND [ContainerId] = #{ContainerId}
+	</update>
+	<delete id="deleteContainerItineraries" parameterType="ContainerItineraries">
+        DELETE FROM [dbo].[ContainerItineraries] where [ItineraryId] = #{ItineraryId} AND [ContainerId] = #{ContainerId}
+    </delete>
+	
+	<insert id="saveMasterBillItineraries" parameterType="MasterBillItineraries"> 
+	INSERT INTO [dbo].[MasterBillItineraries]
+           ([ItineraryId]
+           ,[MasterBillOfLadingId]
+           ,[CreatedBy]
+           ,[CreatedDate]
+           ,[UpdatedBy]
+           ,[UpdatedDate])
+     VALUES
+           (#{ItineraryId}
+           ,#{MasterBillOfLadingId}
+           ,#{CreatedBy}
+           ,#{CreatedDate}
+           ,#{UpdatedBy}
+           ,#{UpdatedDate})
+    </insert>
+	<update id="updateMasterBillItineraries" parameterType="MasterBillItineraries">
+	UPDATE [dbo].[MasterBillItineraries]
+	   SET [UpdatedBy] = #{UpdatedBy}
+	      ,[UpdatedDate] = #{UpdatedDate}
+	 WHERE [ItineraryId] = #{ItineraryId}
+	 AND [MasterBillOfLadingId] = #{MasterBillOfLadingId}
+	</update>
+	<delete id="deleteMasterBillItineraries" parameterType="MasterBillItineraries">
+        DELETE FROM [dbo].[MasterBillItineraries] where [ItineraryId] = #{ItineraryId} AND [MasterBillOfLadingId] = #{MasterBillOfLadingId}
+    </delete>
+</mapper>

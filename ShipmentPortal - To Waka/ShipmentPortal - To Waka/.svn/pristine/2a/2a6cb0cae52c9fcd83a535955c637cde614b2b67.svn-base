@@ -1,0 +1,112 @@
+package com.csfe.etl.business.entity.POFulfillment;
+
+
+
+public class Load {
+	
+	public String itemseq;
+	public String EquipmentType;
+	public String PlannedVolume;
+	public String PlannedGrossWeight;
+	public String PlannedPackageQuantity;
+	public String PackageUOM;
+	public String ContainerNumber;
+	public String SealNumber;
+	public String SealNumber2;
+	public String TotalGrossWeight;
+	public String TotalNetWeight;
+	public String LoadingDate;
+	public String GateInDate;
+	
+	
+	public String getItemseq() {
+		return itemseq;
+	}
+	public void setItemseq(String itemseq) {
+		this.itemseq = itemseq;
+	}
+	public String getEquipmentType() {
+		return EquipmentType;
+	}
+	public void setEquipmentType(String equipmentType) {
+		EquipmentType = equipmentType;
+	}
+	public String getPlannedVolume() {
+		return PlannedVolume;
+	}
+	public void setPlannedVolume(String plannedVolume) {
+		PlannedVolume = plannedVolume;
+	}
+	public String getPlannedGrossWeight() {
+		return PlannedGrossWeight;
+	}
+	public void setPlannedGrossWeight(String plannedGrossWeight) {
+		PlannedGrossWeight = plannedGrossWeight;
+	}
+	public String getPlannedPackageQuantity() {
+		return PlannedPackageQuantity;
+	}
+	public void setPlannedPackageQuantity(String plannedPackageQuantity) {
+		PlannedPackageQuantity = plannedPackageQuantity;
+	}
+	public String getPackageUOM() {
+		return PackageUOM;
+	}
+	public void setPackageUOM(String packageUOM) {
+		PackageUOM = packageUOM;
+	}
+	public String getContainerNumber() {
+		return ContainerNumber;
+	}
+	public void setContainerNumber(String containerNumber) {
+		ContainerNumber = containerNumber;
+	}
+	public String getSealNumber() {
+		return SealNumber;
+	}
+	public void setSealNumber(String sealNumber) {
+		SealNumber = sealNumber;
+	}
+	public String getSealNumber2() {
+		return SealNumber2;
+	}
+	public void setSealNumber2(String sealNumber2) {
+		SealNumber2 = sealNumber2;
+	}
+	public String getTotalGrossWeight() {
+		return TotalGrossWeight;
+	}
+	public void setTotalGrossWeight(String totalGrossWeight) {
+		TotalGrossWeight = totalGrossWeight;
+	}
+	public String getTotalNetWeight() {
+		return TotalNetWeight;
+	}
+	public void setTotalNetWeight(String totalNetWeight) {
+		TotalNetWeight = totalNetWeight;
+	}
+	public String getLoadingDate() {
+		return LoadingDate;
+	}
+	public void setLoadingDate(String loadingDate) {
+		LoadingDate = loadingDate;
+	}
+	public String getGateInDate() {
+		return GateInDate;
+	}
+	public void setGateInDate(String gateInDate) {
+		GateInDate = gateInDate;
+	}
+	@Override
+	public String toString() {
+		return "Load [itemseq=" + itemseq + ", EquipmentType=" + EquipmentType + ", PlannedVolume=" + PlannedVolume
+				+ ", PlannedGrossWeight=" + PlannedGrossWeight + ", PlannedPackageQuantity=" + PlannedPackageQuantity
+				+ ", PackageUOM=" + PackageUOM + ", ContainerNumber=" + ContainerNumber + ", SealNumber=" + SealNumber
+				+ ", SealNumber2=" + SealNumber2 + ", TotalGrossWeight=" + TotalGrossWeight + ", TotalNetWeight="
+				+ TotalNetWeight + ", LoadingDate=" + LoadingDate + ", GateInDate=" + GateInDate + "]";
+	}
+	
+	
+	
+	
+}

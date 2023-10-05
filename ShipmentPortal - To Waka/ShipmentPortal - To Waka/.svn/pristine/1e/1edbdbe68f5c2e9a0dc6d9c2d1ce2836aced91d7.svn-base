@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.edison.business.dao.PaymentDAO">
+
+<!--    <sql id="dbName">invtrackheader</sql>-->
+<!--    <sql id="dbName">invtrackdetail</sql>-->
+<!--    <sql id="dbName">invoiceheader</sql>-->
+    <sql id="lastupdatedate">getdate() - 60</sql>
+
+    <select id="findInvoicePaymentStatus" parameterType="java.lang.String" resultType="Payment">
+        select distinct
+            header.invoiceno AS InvoiceNo,
+            CASE
+                WHEN header.settled = 'C' THEN 1
+                WHEN header.settled = 'N' THEN ''
+                WHEN header.settled = 'P' THEN 2
+                END AS PaymentStatus,
+            invheader.Receivedate AS PaymentDate,
+            invheader.lastupdatedate AS UpdatedDate,
+            invheader.lastupdateusercode AS UpdatedBy,
+            header.lastupdatedate
+        FROM invtrackheader invheader
+                 LEFT JOIN invtrackdetail invdetail on invdetail.refno = invheader.refno
+                 LEFT JOIN invoiceheader header on header.invoiceno = invdetail.invoiceno
+        where header.lastupdatedate >= getdate() - 60
+        order by header.invoiceno
+    </select>
+
+</mapper>

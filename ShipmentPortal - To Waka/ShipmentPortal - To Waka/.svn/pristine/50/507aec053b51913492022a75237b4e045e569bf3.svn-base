@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.UpdatePaymentStatus.business.dao.PaymentDAO">
+
+<!--    <sql id="dbName">invtrackheader</sql>-->
+<!--    <sql id="dbName">invtrackdetail</sql>-->
+<!--    <sql id="dbName">invoiceheader</sql>-->
+
+    <select id="findInvoicePaymentStatus" parameterType="java.lang.String" resultType="Payment">
+        SELECT *
+        FROM(
+            select distinct
+            header.invoiceno AS InvoiceNo,
+            CASE
+                WHEN header.settled = 'C' THEN '1'
+                WHEN header.settled = 'P' THEN '2'
+                END AS PaymentStatus,
+            invheader.Receivedate AS PaymentDate,
+            invheader.lastupdatedate AS UpdatedDate,
+            invheader.lastupdateusercode AS UpdatedBy,
+            row_number() over(partition by header.invoiceno order by invheader.Receivedate desc) as rs_num
+        FROM invtrackheader invheader
+                 LEFT JOIN invtrackdetail invdetail on invdetail.refno = invheader.refno
+                 RIGHT JOIN invoiceheader header on header.invoiceno = invdetail.invoiceno
+        WHERE (header.settled = 'C' or header.settled = 'P')
+          and header.lastupdatedate >= #{fromDay}
+          and invheader.Receivedate is not null
+          and (header.companycode = 'ALRE05' or header.companycode = 'JOPL01' or header.companycode = 'XXPR03' or header.companycode = 'TESH04')) t1
+        WHERE t1.rs_num = 1
+        ORDER BY InvoiceNo
+    </select>
+    <select id="findTest" resultType="Map">
+        select TOP 10  invoiceno,
+                       lastupdatedate
+        FROM invoiceheader
+    </select>
+
+</mapper>

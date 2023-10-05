@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+<!--    <mvc:annotation-driven />-->
+
+    <context:annotation-config />
+    <context:component-scan base-package="com.csfe.UpdatePaymentStatus" >
+    </context:component-scan>
+    <context:annotation-config />
+    <context:component-scan base-package="com.csfe.common" >
+    </context:component-scan>
+    <bean id="generalMsg-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:conf/config.properties</value>
+                <value>classpath:conf/mail.properties</value>
+            </list>
+        </property>
+    </bean>
+    <import resource="classpath:conf/session/UPS/Email-SessionFactory.xml" />
+    <import resource="classpath:conf/session/UPS/UPS-SessionFactory.xml" />
+
+    <bean id="UpdatePaymentStatusService" class="com.csfe.UpdatePaymentStatus.business.service.UpdatePaymentStatusServiceImpl">
+        <property name="paymentApi" value="/api/invoices/updatepayment"/>
+        <property name="tokenApi" value="/connect/token"/>
+<!--        <property name="dbName" value="EDISON_PRC_HKG_NVO_TEST" />-->
+    </bean>
+
+    <bean id="WarningDeliveryReq" class="com.csfe.common.business.entity.WarningDeliveryRequest">
+        <property name="reqID" value="0"/>
+        <property name="systemID" value="${System.SystemID}"/>
+        <property name="emailFrom" value="${mailServer.EmailFrom}"/>
+        <property name="emailTo" value="${mailServer.EmailTo}"/>
+        <property name="emailCC" value="${mailServer.EmailCC}"/>
+        <property name="emailSubject" value="${mailServer.EmailSubject}"/>
+        <property name="status" value="PEND"/>
+        <property name="createdBy" value="${System.UserID}"/>
+        <property name="updatedBy" value="${System.UserID}"/>
+    </bean>
+    <bean id="filterList" class="java.util.HashMap">
+        <constructor-arg>
+            <map key-type="java.lang.String" value-type="java.util.List">
+            </map>
+        </constructor-arg>
+    </bean>
+
+</beans>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="logImpl" value="SLF4J" />
+	</settings>
+    <typeAliases>
+		<typeAlias alias="EDIProcessLog" type="com.csfe.trs.business.entity.EDIProcessLog"/>
+		<typeAlias alias="POFulfillment" type="com.csfe.trs.business.entity.POFulfillment"/>
+		<typeAlias alias="Vesvoyforwarder" type="com.csfe.trs.business.entity.Vesvoyforwarder"/>
+	</typeAliases>
+    <plugins>
+        <plugin interceptor="com.csfe.trs.business.interceptor.TRSInterceptor"/>
+    </plugins>
+    <mappers>
+        <mapper resource="mapper/TRS/EDIProcessLogMapper.xml"></mapper>
+        <mapper resource="mapper/TRS/EdisonMapper.xml"></mapper>
+        <mapper resource="mapper/TRS/TRSMapper.xml"></mapper>
+    </mappers>
+</configuration>

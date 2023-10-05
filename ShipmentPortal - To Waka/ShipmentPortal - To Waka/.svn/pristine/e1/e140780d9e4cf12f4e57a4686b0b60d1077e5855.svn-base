@@ -1,0 +1,1303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.csfe.edison.business.dao.EdisonLogDAO">
+	
+	<sql id="dbName">edison_prc_cvs.dbo.edisonetlid</sql>
+	<sql id="azureDB">[AZURE New Staging DB].[SP-GlobalIdSchemaDB]</sql>
+	<sql id="cvsDB">edison_prc_cvs</sql>
+	<sql id="ediProcessLog">CSHKG_EDI_GATEWAY.dbo.EDIProcessLog</sql>
+	<sql id="containerStatusLog">CSHKG_SHIPMENT_EVENT.dbo.ContainerStatusLog</sql>
+	<sql id="containerStatusEventLog">CSHKG_SHIPMENT_EVENT.dbo.ContainerStatusEventLog</sql>
+	<sql id="lastupdatedate">GETDATE() - 60</sql>
+	<sql id="ctseventdatetime">GETDATE() - 60</sql>
+	<sql id="documentDateTime">GETDATE() - 60</sql>
+	<sql id="cutoffShipment">'2022-01-01'</sql>
+	<sql id="cutoffPo">'2022-01-01'</sql>
+	
+	<sql id="SHIPMENTS">'SHIPMENTS'</sql>
+	<sql id="ORGANIZATIONS">'ORGANIZATIONS'</sql>
+	<sql id="PRINCIPALS">'PRINCIPALS'</sql>
+	<sql id="BILLOFLADINGS">'BILLOFLADINGS'</sql>
+	<sql id="MASTERBILLS">'MASTERBILLS'</sql>
+	<sql id="CONTAINERS">'CONTAINERS'</sql>
+	<sql id="CONSOLIDATIONS">'CONSOLIDATIONS'</sql>
+	<sql id="CONSIGNMENTS">'CONSIGNMENTS'</sql>
+	<sql id="CARGODETAILS">'CARGODETAILS'</sql>
+	<sql id="SHIPMENTLOADS">'SHIPMENTLOADS'</sql>
+	<sql id="SHIPMENTLOADDETAILS">'SHIPMENTLOADDETAILS'</sql>
+	<sql id="BILLOFLADINGCONTACTS">'BILLOFLADINGCONTACTS'</sql>
+	<sql id="MASTERBILLCONTACTS">'MASTERBILLCONTACTS'</sql>
+	<sql id="SHIPMENTCONTACTS">'SHIPMENTCONTACTS'</sql>
+	<sql id="ITINERARIES">'ITINERARIES'</sql>
+	<sql id="ACTIVITIES">'ACTIVITIES'</sql>
+	<sql id="PURCHASEORDERS">'PURCHASEORDERS'</sql>
+	<sql id="EDIName">'SHIPMENT_PORTAL'</sql>
+	<sql id="ORG_TEST_CASE"></sql>
+	<sql id="PONO_TEST_CASE"></sql>
+	<sql id="SONO_TEST_CASE"></sql>
+	<sql id="CONT_TEST_CASE"></sql>
+	<sql id="polist"><foreach item="item" index="index" collection="pocompanyCode" open="(" separator="," close=")">#{item}</foreach></sql>
+	<sql id="comlist"><foreach item="item" index="index" collection="companyCode" open="(" separator="," close=")">#{item}</foreach></sql>
+	<sql id="PRINCIPAL_CODE">'THHO0010'</sql>		<!-- USE to send companycode to CS PO Portal [THHO01] & [THHO02] = [THHO0010] -->
+	<sql id="DEST_AGENT_CODE"></sql>
+	<sql id="DEST_AGENT_CODE_CS"></sql>
+	<sql id="CONSIGNEE_CODE">'THHO01'</sql>			<!-- USE to find TownGas shipment in edison -->
+	
+    <select id="findById" parameterType="java.lang.Long" resultType="EdisonLog">
+        SELECT * FROM <include refid="dbName"/> WHERE reqID =#{id}
+    </select>
+    <select id="findPendingEdisonLog" parameterType="java.lang.String" resultType="EdisonLog">
+        SELECT * FROM <include refid="dbName"/> WHERE [status] = 'PEND' and dbname = #{db} and sysname = #{sysname}
+    </select>
+    <select id="findDeleteEdisonLog" parameterType="java.lang.String" resultType="EdisonLog">
+        SELECT * FROM <include refid="dbName"/> WHERE [status] = 'DELETE' and dbname = #{db} and sysname = #{sysname}
+    </select>
+    <insert id="insertEdisonLog" parameterType="EdisonLog">
+        <!-- <selectKey keyProperty="a_id" order="AFTER" resultType="java.lang.Integer">
+            SELECT LAST_INSERT_ID()
+        </selectKey> -->
+	    INSERT INTO <include refid="dbName"/> ([dbname],[code],[code2],[seq],[codetype],[code3],[createdate],[EdiData],[IsETLtoAzure],[lastupdate],[status],[AzureId],[AzureMsg],[AzureLastupdate],[sysname])
+	    VALUES(#{dbname},#{code},#{code2},#{seq},#{codetype},#{code3},#{createdate},#{EdiData},#{IsETLtoAzure},#{lastupdate},#{status},#{AzureId},#{AzureMsg},#{AzureLastupdate},#{sysname})
+    </insert>
+    <update id="updateEdisonLog" parameterType="EdisonLog">
+      	UPDATE <include refid="dbName"/> 
+      	SET [EdiData] = #{EdiData},[IsETLtoAzure] = #{IsETLtoAzure},[lastupdate] = #{lastupdate},[status] = #{status} ,[AzureId] = #{AzureId}, [AzureMsg] = #{AzureMsg}, [AzureLastupdate] = #{AzureLastupdate}
+	 	WHERE id = #{id}
+	 	<!-- <if test="EdisonLog.code!=null and EdisonLog.code!=''">
+	 	 	AND [code] = #{code} 
+	 	</if>
+	 	<if test="EdisonLog.code2!=null and EdisonLog.code2!=''">
+	 	 	AND [code2] = #{code2} 
+	 	</if>
+	 	<if test="EdisonLog.seq!=null and EdisonLog.seq!=''">
+	 	 	AND [seq] = #{seq} 
+	 	</if>
+	 	<if test="EdisonLog.code3!=null and EdisonLog.code3!=''">
+	 	 	 AND [code3] = #{code3}
+	 	</if> -->
+    </update>
+    
+    <select id="findEdisonLog" resultType="EdisonLog">
+   		<foreach item="item" index="index" collection="list">
+	   		<if test="'SHIPMENTSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="SHIPMENTSSQL"/></if>
+		    <if test="'ORGANIZATIONSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="ORGANIZATIONSSQL"/></if>
+		    <if test="'PRINCIPALSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="PRINCIPALSSQL"/></if>
+		    <if test="'BILLOFLADINGSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="BILLOFLADINGSSQL"/></if>
+		    <if test="'MASTERBILLSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="MASTERBILLSSQL"/></if>
+		    <if test="'CONTAINERSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CONTAINERSSQL"/></if>
+		    <if test="'CONSOLIDATIONSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CONSOLIDATIONSSQL"/></if>
+		    <if test="'CONSIGNMENTSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CONSIGNMENTSSQL"/></if>
+		    <if test="'CARGODETAILSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CARGODETAILSSQL"/></if>
+		    <if test="'SHIPMENTLOADSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="SHIPMENTLOADSSQL"/></if>
+		    <if test="'SHIPMENTLOADDETAILSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="SHIPMENTLOADDETAILSSQL"/></if>
+		    <if test="'BILLOFLADINGCONTACTSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="BILLOFLADINGCONTACTSSQL"/></if>
+		    <if test="'MASTERBILLCONTACTSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="MASTERBILLCONTACTSSQL"/></if>
+		    <if test="'SHIPMENTCONTACTSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="SHIPMENTCONTACTSSQL"/></if>
+			<if test="'ITINERARIESSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="ITINERARIESSQL"/></if>
+			<if test="'ACTIVITIESSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="ACTIVITIESSQL"/></if>
+			<if test="'PURCHASEORDERSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="PURCHASEORDERSSQL"/></if>
+			<if test="'CRUISEORDERSSQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CRUISEORDERSSQL"/></if>
+			<if test="'CRUISEORDERWAREHOUSESQL' == item"><if test="index > 0"> UNION ALL </if><include refid="CRUISEORDERWAREHOUSESQL"/></if>
+   		</foreach>
+    </select>
+    
+    <sql id="SHIPMENTSSQL">
+    	SELECT DISTINCT
+    	eid.id AS id,
+    	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+		#{db} AS dbname,
+		RTRIM(ibl.housebl_no) AS code,
+		NULL AS code2,
+		NULL AS seq,
+		<include refid="SHIPMENTS"/> AS codetype,
+		NULL AS code3,
+		eid.isetltoazure AS isetltoazure,
+		eid.lastupdate AS lastupdate,
+		(SELECT MAX(v) FROM (VALUES (ibm.lastupdatedate), (ibl.lastupdatedate), (vf.lastupdatedate)) AS value(v)) AS edisonlastupdate,
+		eid.azureid AS azureid,
+		#{sysname} AS [sysname]
+		FROM dbo.[inbound_job_main] ibm (NOLOCK)
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK) on ibm.jobno = ibl.jobno
+		LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON eid.dbname = #{db}
+			AND eid.[sysname] = #{sysname}
+		    AND eid.codetype = <include refid="SHIPMENTS"/>
+			AND ibl.housebl_no = eid.code
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR ibl.lastupdatedate > eid.lastupdate
+			OR vf.lastupdatedate > eid.lastupdate)
+		AND ibm.createdate >= <include refid="cutoffShipment"/>
+		AND (ibl.consigneecode IN (<include refid="CONSIGNEE_CODE"/>))
+		<include refid="SONO_TEST_CASE"/>
+	</sql>
+	<sql id="ORGANIZATIONSSQL">
+		SELECT DISTINCT eid.id AS id,
+		       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+		       #{db} AS dbname,
+		       RTRIM(cmpyHdr.companycode) AS code,
+		       CASE WHEN c.centralized IS NOT NULL THEN 'CENTRALIZED' ELSE NULL END AS code2,
+		       aa.AzureId AS seq,
+		       <include refid="ORGANIZATIONS"/> AS codetype,
+		       NULL AS code3,
+		       eid.isetltoazure AS isetltoazure,
+		       eid.lastupdate AS lastupdate,
+		       cmpydet.lastupdatedate AS edisonlastupdate,
+			   eid.azureid AS azureid,
+			   'MASTERDATA' AS sysname   
+		FROM dbo.CompanyHeader cmpyHdr (NOLOCK)
+			INNER JOIN dbo.CompanyDetail cmpydet (NOLOCK)
+				ON cmpyHdr.companycode = cmpydet.companycode
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+				ON eid.codetype = <include refid="ORGANIZATIONS"/>
+				AND eid.sysname = 'MASTERDATA'
+				AND eid.dbname = #{db}
+				AND cmpyHdr.companycode = eid.code
+			OUTER APPLY (
+				SELECT TOP 1 'Y' AS centralized
+				FROM <include refid="cvsDB"/>.dbo.dbCompany syn (nolock)
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap mapdb (nolock)
+					ON cmpyHdr.companycode = syn.CompanyCode
+					AND syn.suspended = 'A'
+					AND syn.DatabaseName = mapdb.PartnerCode
+					AND mapdb.EDIName = <include refid="EDIName"/>
+					AND mapdb.codetype = 'CMPYCORRELDB'
+					AND mapdb.Status = 'Y'
+					AND mapdb.ourcode = #{db}
+			) c
+			OUTER APPLY (
+				SELECT MIN(ii.AzureId) AS AzureId FROM <include refid="dbName"/> ii (NOLOCK)
+				WHERE ii.codetype = <include refid="ORGANIZATIONS"/>
+				AND eid.sysname = 'MASTERDATA'
+				AND ii.IsETLtoAzure = 'Y'
+				AND cmpyHdr.CompanyCode = ii.code
+				AND ISNULL(ii.code2,'') = 'CENTRALIZED'
+			) aa
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+				ON popmap.EDIName = <include refid="EDIName"/>
+				AND popmap.codetype = 'POPARTYPREFIX'
+				AND popmap.Status = 'Y'
+				AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') <![CDATA[ <> ]]> 'Y'
+		AND cmpyHdr.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL 
+			OR eid.lastupdate <![CDATA[ < ]]> cmpydet.lastupdatedate)
+		--<include refid="ORG_TEST_CASE"/>
+		UNION
+		--PO Parties
+		SELECT DISTINCT eid.id AS id,
+		       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+		       #{db} AS dbname,
+		       RTRIM(pop.PartyCode) AS code,
+		       RTRIM(pop.CompanyType) AS code2,
+		       1 AS seq,
+		       <include refid="ORGANIZATIONS"/> AS codetype,
+		       RTRIM(pop.CompanyCode) AS code3,
+		       eid.isetltoazure AS isetltoazure,
+		       eid.lastupdate AS lastupdate,
+		       pop.lastupdatedate AS edisonlastupdate,
+			   eid.azureid AS azureid,
+			   'MASTERDATA' AS sysname
+		FROM <include refid="cvsDB"/>.dbo.POParty pop (NOLOCK)
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+				ON eid.codetype = <include refid="ORGANIZATIONS"/>
+				AND eid.sysname = 'MASTERDATA'
+				AND eid.dbname = #{db}
+				AND pop.PartyCode = eid.code
+				AND pop.PartyType IN ('V','S','P')
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+				ON popmap.EDIName = <include refid="EDIName"/>
+				AND popmap.codetype = 'POPARTYPREFIX'
+				AND popmap.Status = 'Y'
+				AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') = 'Y'
+			AND ISNULL(RTRIM(pop.PartyCode), '') <![CDATA[ <> ]]> ''
+			AND pop.lastupdatedate >= <include refid="lastupdatedate"/>
+			AND (eid.lastupdate IS NULL 
+				OR eid.lastupdate <![CDATA[ < ]]> pop.lastupdatedate)
+			AND pop.CompanyCode IN <include refid="polist"/>
+		--<include refid="ORG_TEST_CASE"/>
+		UNION
+		--PO supplier
+		SELECT DISTINCT eid.id AS id,
+		       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+		       #{db} AS dbname,
+		       RTRIM(cvpo.SupplierCode) AS code,
+		       RTRIM(cvpo.CompanyType) AS code2,
+		       2 AS seq,
+		       <include refid="ORGANIZATIONS"/> AS codetype,
+		       RTRIM(cvpo.CompanyCode) AS code3,
+		       eid.isetltoazure AS isetltoazure,
+		       eid.lastupdate AS lastupdate,
+		       cvpo.lastupdatedate AS edisonlastupdate,
+			   eid.azureid AS azureid,
+		       'MASTERDATA' AS sysname
+		FROM <include refid="cvsDB"/>.dbo.CompanyValidPO cvpo (NOLOCK)
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+				ON eid.codetype = <include refid="ORGANIZATIONS"/>
+				AND eid.sysname = 'MASTERDATA'
+				AND eid.dbname = #{db}
+				AND cvpo.SupplierCode = eid.code
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap popmap (nolock)
+				ON popmap.EDIName = <include refid="EDIName"/>
+				AND popmap.codetype = 'POPARTYPREFIX'
+				AND popmap.Status = 'Y'
+				AND popmap.PartnerCode = #{db}
+		WHERE ISNULL(popmap.Status, '') = 'Y'
+			AND ISNULL(RTRIM(cvpo.SupplierCode), '') <![CDATA[ <> ]]> ''
+			AND NOT EXISTS (
+				SELECT 1 FROM <include refid="cvsDB"/>.dbo.POParty pop (NOLOCK)
+				WHERE cvpo.SupplierCode = pop.PartyCode
+				AND pop.PartyCode IS NOT NULL
+				AND pop.PartyType IN ('V','S','P')
+			)
+			AND cvpo.lastupdatedate >= <include refid="lastupdatedate"/>
+			AND (eid.lastupdate IS NULL
+				OR eid.lastupdate <![CDATA[ < ]]> cvpo.lastupdatedate)
+			AND RTRIM(cvpo.PONo) <![CDATA[ <> ]]> ''
+			AND cvpo.CompanyCode IN <include refid="polist"/>
+		<include refid="ORG_TEST_CASE"/>
+    </sql>
+	<sql id="PRINCIPALSSQL">
+		SELECT DISTINCT 0 AS id,
+	       	   'NEW' AS action,
+	       	   #{db} AS dbname,
+		       RTRIM(pp.prefix) AS code,
+		       RTRIM(mm.usergroup) AS code2,
+		       aa.AzureId AS seq,
+		       <include refid="PRINCIPALS"/> AS codetype,
+		       RTRIM(mm.description) AS code3,
+		       NULL AS isetltoazure,
+		       NULL AS lastupdate,
+		       NULL AS edisonlastupdate,
+			   NULL AS azureid,
+		       'MASTERDATA' AS sysname
+		FROM dbo.job_prefix AS pp(NOLOCK)
+		LEFT JOIN dbo.doc_prefix AS mm(NOLOCK) ON mm.prefix = pp.prefix
+		LEFT JOIN <include refid="dbName"/> AS dd(NOLOCK) ON dd.code = mm.usergroup
+		                                        AND dd.codetype = <include refid="ORGANIZATIONS"/>
+		                                        AND dd.sysname = 'MASTERDATA'
+		                                        AND dd.dbname = #{db}
+		OUTER APPLY (
+			SELECT MIN(ii.AzureId) AS AzureId FROM <include refid="dbName"/> ii (NOLOCK)
+			WHERE ii.codetype = <include refid="PRINCIPALS"/>
+			AND ii.sysname = 'MASTERDATA'
+			AND ii.IsETLtoAzure = 'Y'
+			AND pp.prefix = ii.code
+			AND mm.usergroup = ii.code2
+		) aa
+		WHERE mm.doc_type = 'JOB'
+		      AND dd.id >= 1
+		      AND NOT EXISTS
+	          (
+	            SELECT 1
+	            FROM <include refid="dbName"/> AS eid(NOLOCK)
+	            WHERE eid.dbname = #{db}
+	                  AND RTRIM(eid.code) = RTRIM(pp.prefix)
+	                  AND RTRIM(eid.code2) = RTRIM(mm.usergroup)
+	                  AND eid.codetype = <include refid="PRINCIPALS"/>
+	                  AND eid.sysname = 'MASTERDATA'
+	          )
+	</sql>
+	<sql id="BILLOFLADINGSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.housebl_no) AS code,
+       	NULL AS code2,
+       	NULL AS seq,
+       	<include refid="BILLOFLADINGS"/> AS codetype,
+       	NULL AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+      	MAX((SELECT MAX(v) FROM (VALUES (ibl.lastupdatedate), (ibm.lastupdatedate), (vf.lastupdatedate)) AS value(v))) OVER(PARTITION BY ibl.housebl_no) AS edisonlastupdate,
+	   	eid.azureid AS azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+        	AND eid.codetype = <include refid="BILLOFLADINGS"/>
+			AND ibl.housebl_no = eid.code
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibl.lastupdatedate > eid.lastupdate
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR vf.lastupdatedate > eid.lastupdate)
+		AND ibl.housebl_no IS NOT NULL AND ibl.housebl_no <![CDATA[ <> ]]> ''
+		<include refid="SONO_TEST_CASE"/>
+
+    </sql>
+	<sql id="MASTERBILLSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.masterbl_no) AS code,
+       	NULL AS code2,
+       	NULL AS seq,
+       	<include refid="MASTERBILLS"/> AS codetype,
+       	NULL AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	MAX((SELECT MAX(v) FROM (VALUES (ibm.lastupdatedate), (ibl.lastupdatedate), (vf.lastupdatedate)) AS value(v))) OVER(PARTITION BY ibl.masterbl_no) AS edisonlastupdate,
+	   	eid.azureid AS azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="MASTERBILLS"/>
+			AND eid.code = ibl.masterbl_no
+		WHERE ibm.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibl.lastupdatedate > eid.lastupdate
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR vf.lastupdatedate > eid.lastupdate)
+		AND ibl.masterbl_no IS NOT NULL AND ibl.masterbl_no <![CDATA[ <> ]]>''
+		<include refid="SONO_TEST_CASE"/>
+		
+      </sql>
+	<sql id="CONTAINERSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibm.jobno) AS code, -- LOADPLANNO
+		CASE WHEN ibm.movement = 'CY' THEN RTRIM(ibi.containerno) ELSE RTRIM(ibm.cfs_containerno) END AS code2, 
+       	NULL AS seq,
+       	<include refid="CONTAINERS"/> AS codetype,
+       	NULL AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	MAX((SELECT MAX(v) FROM (VALUES (ibm.lastupdatedate), (ibl.lastupdatedate), (ibi.lastupdatedate), (vf.lastupdatedate)) AS value(v))) OVER(PARTITION BY ibl.masterbl_no) AS edisonlastupdate,
+		eid.azureid AS azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no
+		LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="CONTAINERS"/>
+			AND ibm.jobno = eid.code
+			AND ((ibm.movement = 'CY' AND ibi.containerno = eid.code2)
+			OR (ibm.movement <![CDATA[ <> ]]> 'CY' AND ibm.cfs_containerno = eid.code2))
+		WHERE ibm.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibl.lastupdatedate > eid.lastupdate
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR ibi.lastupdatedate > eid.lastupdate
+			OR vf.lastupdatedate > eid.lastupdate)
+		AND ((ibm.movement = 'CY' AND ibi.containerno IS NOT NULL AND ibi.containerno <![CDATA[ <> ]]> '')
+			OR (ibm.movement <![CDATA[ <> ]]> 'CY' AND ibm.cfs_containerno IS NOT NULL AND ibm.cfs_containerno <![CDATA[ <> ]]> ''))
+		<include refid="SONO_TEST_CASE"/>
+	</sql>
+	<sql id="CONSOLIDATIONSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibm.jobno) AS code,
+       	RTRIM(ibm.cfs_containerno) AS code2,
+       	NULL AS seq,
+       	<include refid="CONSOLIDATIONS"/> AS codetype,
+       	NULL AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	ibm.lastupdatedate AS edisonlastupdate,
+	   	eid.azureid as azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/>  pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="CONSOLIDATIONS"/>
+			AND eid.code = ibm.jobno
+        	AND eid.code2 = ibm.cfs_containerno
+		WHERE ibm.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL	OR ibm.lastupdatedate > eid.lastupdate)
+		AND ibm.cfs_containerno IS NOT NULL AND ibm.cfs_containerno <![CDATA[ <> ]]> ''
+		AND ibm.movement <![CDATA[ <> ]]> 'CY' -- TBC
+		<include refid="SONO_TEST_CASE"/>
+    </sql>
+	<sql id="CONSIGNMENTSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.housebl_no) AS code,
+       	aa.code AS code2,
+       	NULL AS seq,
+       	<include refid="CONSIGNMENTS"/> AS codetype,
+       	NULL AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	MAX((SELECT MAX(v) FROM (VALUES (ibm.lastupdatedate), (ibl.lastupdatedate), (vf.lastupdatedate)) AS value(v))) OVER(PARTITION BY ibl.masterbl_no) AS edisonlastupdate,
+	   	eid.azureid AS azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+        INNER JOIN <include refid="dbName"/> aa (NOLOCK)
+			ON aa.dbname = pt.dbname
+			AND aa.sysname = 'MASTERDATA'
+	        AND aa.codetype = 'ORGANIZATIONS'
+	        AND aa.code IN <include refid="comlist"/>
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="CONSIGNMENTS"/>
+			AND eid.code2 = aa.code
+			AND eid.code = ibl.housebl_no
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibl.lastupdatedate > eid.lastupdate
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR vf.lastupdatedate > eid.lastupdate)
+		<include refid="SONO_TEST_CASE"/>
+	</sql>
+	<sql id="CARGODETAILSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.housebl_no) AS code,
+       	NULL AS code2,
+       	ibi.itemno AS seq,
+       	<include refid="CARGODETAILS"/> AS codetype,
+       	CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,'')) AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	ibl.lastupdatedate AS edisonlastupdate,
+	   	eid.azureid as azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		LEFT JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no
+		LEFT JOIN <include refid="dbName"/> AS eid(NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="CARGODETAILS"/>
+        	AND eid.code = ibl.housebl_no
+			AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL	OR ibi.lastupdatedate > eid.lastupdate
+			OR (eid.status = 'DELETED' AND ISNULL(eid.IsETLtoAzure, 'N') = 'N'))
+			<include refid="SONO_TEST_CASE"/>
+		UNION
+		SELECT DISTINCT
+			eid.id AS [id],
+			'DELETE' AS action,
+			eid.dbname AS dbname,
+			eid.code AS code,
+			eid.code2 AS code2,
+			eid.seq AS seq,
+			eid.codetype AS codetype,
+			eid.code3 AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			ibl.lastupdatedate AS edisonlastupdate,
+			eid.azureid AS azureid,
+		    eid.sysname AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN <include refid="dbName"/> AS eid(NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="CARGODETAILS"/>
+        	AND eid.code = ibl.housebl_no
+			AND ISNULL(eid.isetltoazure, '') = 'Y'
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND ibl.lastupdatedate > eid.lastupdate
+		AND NOT EXISTS (
+			SELECT 1 FROM <include refid="dbName"/> AS teid(NOLOCK)
+			INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK)
+				ON eid.dbname = teid.dbname
+				AND eid.sysname = teid.sysname
+				AND eid.codetype = teid.codetype
+				AND teid.codetype = <include refid="CARGODETAILS"/>
+        		AND teid.code = ibi.housebl_no
+				AND ISNULL(teid.isetltoazure, '') = 'Y'
+			WHERE ibl.housebl_no = ibi.housebl_no
+			AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))
+		)
+		<include refid="SONO_TEST_CASE"/>
+		
+	</sql>
+	<sql id="SHIPMENTLOADSSQL">
+	
+	SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.housebl_no) AS code,
+       	RTRIM(ibm.jobno) AS code2,
+       	NULL AS seq,
+       	<include refid="SHIPMENTLOADS"/> AS codetype,
+       	CASE WHEN ibm.movement = 'CY' THEN RTRIM(ibi.containerno) ELSE RTRIM(ibm.cfs_containerno) END AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	ibm.lastupdatedate AS edisonlastupdate,
+	   	eid.azureid as azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="SHIPMENTLOADS"/>
+			AND eid.code = ibl.housebl_no
+			AND eid.code2 = ibm.jobno
+			AND ((ibm.movement = 'CY' AND ibi.containerno = eid.code3)
+			OR (ibm.movement <![CDATA[ <> ]]> 'CY' AND ibm.cfs_containerno = eid.code3))
+		WHERE ibm.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL	OR ibm.lastupdatedate > eid.lastupdate)
+		AND ((ibm.movement = 'CY' AND ibi.containerno IS NOT NULL AND ibi.containerno <![CDATA[ <> ]]> '')
+		OR  (ibm.movement <![CDATA[ <> ]]> 'CY' AND ibm.cfs_containerno IS NOT NULL AND ibm.cfs_containerno <![CDATA[ <> ]]> ''))
+		<include refid="SONO_TEST_CASE"/>
+	
+	
+    </sql>
+	<sql id="SHIPMENTLOADDETAILSSQL">
+		SELECT DISTINCT eid.id AS id,
+       	CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(ibl.housebl_no) AS code,
+       	ibm.jobno AS code2,
+       	ibi.itemno AS seq,
+       	<include refid="SHIPMENTLOADDETAILS"/> AS codetype,
+       	CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))
+		+ '~' + (CASE WHEN ibm.movement = 'CY' THEN RTRIM(ibi.containerno) ELSE RTRIM(ibm.cfs_containerno) END)	AS code3,
+       	eid.isetltoazure AS isetltoazure,
+       	eid.lastupdate AS lastupdate,
+       	ibm.lastupdatedate AS edisonlastupdate,
+	   	eid.azureid as azureid,
+		#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)		
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+		INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+	        AND eid.codetype = <include refid="SHIPMENTLOADDETAILS"/>
+			AND eid.code = ibl.housebl_no
+	        AND eid.code2 = ibm.jobno
+			AND ((ibm.movement = 'CY' AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))	+ '~' + RTRIM(ibi.containerno))
+			OR (ibm.movement <![CDATA[ <> ]]> 'CY' AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))	+ '~' + RTRIM(ibm.cfs_containerno)))
+		WHERE ibm.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR ibm.lastupdatedate > eid.lastupdate
+			OR (eid.status = 'DELETED' AND ISNULL(eid.IsETLtoAzure, 'N') = 'N'))
+		AND ((ibm.movement = 'CY' AND ibi.containerno IS NOT NULL AND ibi.containerno <![CDATA[ <> ]]> '')
+			OR  (ibm.movement <![CDATA[ <> ]]> 'CY' AND ibm.cfs_containerno IS NOT NULL AND ibm.cfs_containerno <![CDATA[ <> ]]> ''))
+		<include refid="SONO_TEST_CASE"/>
+		UNION
+		SELECT DISTINCT
+			eid.id AS [id],
+			'DELETE' AS action,
+			eid.dbname AS dbname,
+			eid.code AS code,
+			eid.code2 AS code2,
+			eid.seq AS seq,
+			eid.codetype AS codetype,
+			eid.code3 AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			ISNULL(ibm.lastupdatedate, eid.lastupdate) AS edisonlastupdate,
+			eid.azureid AS azureid,
+		    eid.sysname AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)	
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+        	AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+		INNER JOIN <include refid="dbName"/> AS eid(NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="SHIPMENTLOADDETAILS"/>
+        	AND eid.code = ibl.housebl_no
+			AND ISNULL(eid.isetltoazure, '') = 'Y'
+		INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON eid.code2 = ibm.jobno
+		WHERE (ibm.lastupdatedate IS NULL OR (ibm.lastupdatedate >= <include refid="lastupdatedate"/>))
+		AND NOT EXISTS (
+			SELECT 1 FROM <include refid="dbName"/> AS teid(NOLOCK)
+			INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+			INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no
+				ON eid.dbname = teid.dbname
+				AND eid.sysname = teid.sysname
+				AND eid.codetype = teid.codetype
+				AND teid.codetype = <include refid="SHIPMENTLOADDETAILS"/>
+        		AND teid.code = ibi.housebl_no
+				AND teid.code2 = ibl.jobno
+				AND ISNULL(teid.isetltoazure, '') = 'Y'
+			WHERE eid.code = ibi.housebl_no
+			AND eid.code2 = ibl.jobno
+			AND ibi.itemno = CONVERT(INT, ISNULL(SUBSTRING(eid.code3,1,CHARINDEX('~',eid.code3,1) - 1),0))
+			AND ((ibm.movement = 'CY' AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))	+ '~' + RTRIM(ibi.containerno))
+			OR (ibm.movement <![CDATA[ <> ]]> 'CY' AND eid.code3 = CONVERT(VARCHAR,ISNULL(ibi.itemno,'')) + '~' + RTRIM(ISNULL(ibi.po_no,'')) + '~' + RTRIM(ISNULL(ibi.ref_no,''))	+ '~' + RTRIM(ibm.cfs_containerno)))
+		)
+		<include refid="SONO_TEST_CASE"/>
+	</sql>
+	<sql id="BILLOFLADINGCONTACTSSQL">
+	
+	SELECT DISTINCT
+		blc.id AS id,
+       	CASE WHEN blc.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(cx.code) AS code,
+      	RTRIM(cx.code2) AS code2,
+       	NULL AS seq,
+       	<include refid="BILLOFLADINGCONTACTS"/> AS codetype,
+       	cx.code3 AS code3,
+       	blc.isetltoazure AS isetltoazure,
+       	blc.lastupdate AS lastupdate,
+       	MAX(cx.lastupdatedate) OVER(PARTITION BY cx.code, cx.code2, cx.code3) AS edisonlastupdate,
+	   	blc.azureid as azureid,
+		#{sysname} AS sysname
+		FROM
+			(
+			--Destination Agent, Principal, Consignee, 
+			SELECT 
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				CONVERT(VARCHAR(50), eid.AzureId) AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="BILLOFLADINGS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no				
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('P','C','A')
+				INNER JOIN <include refid="dbName"/> eid (NOLOCK) 
+					ON eid.codetype = 'ORGANIZATIONS'
+					AND eid.sysname = 'MASTERDATA'
+					AND pt.dbname = eid.dbname
+					AND ((map.OurCode in ('P','C') and eid.code IN (<include refid="PRINCIPAL_CODE"/>))
+						OR (map.OurCode in ('A') and eid.code IN <include refid="comlist"/>))
+			WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+
+			UNION
+			--Origin Agent, Supplier/Shipper
+			SELECT
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				0 AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="BILLOFLADINGS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no				
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('S','O/A')
+			WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+			
+			UNION
+			-- Notify Party and Other party
+			SELECT
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				0 AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="BILLOFLADINGS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no				
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('N1')
+			WHERE ibl.notifycode1 IS NOT NULL AND ibl.notifycode1 <![CDATA[ <> ]]> ''
+			AND ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+				
+		) AS cx--subquery table
+		LEFT JOIN <include refid="dbName"/> blc (NOLOCK)
+			ON blc.dbname = #{db}
+			AND blc.sysname = #{sysname}
+			AND blc.codetype = <include refid="BILLOFLADINGCONTACTS"/>
+			AND cx.code = blc.code
+			AND cx.code2 = blc.code2
+			AND cx.code3 = blc.code3
+		WHERE 1=1
+		AND (blc.lastupdate IS NULL 
+			OR cx.lastupdatedate > blc.lastupdate)	
+
+	</sql>
+	<sql id="MASTERBILLCONTACTSSQL">
+	
+	SELECT DISTINCT eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			CONVERT(VARCHAR(50),pt.id) AS code, --MASTERBILLS id
+			CONVERT(VARCHAR(50),ISNULL(oo.AzureId, 0)) AS code2, --ORGANIZTION id
+			NULL AS seq,
+			<include refid="MASTERBILLCONTACTS"/> AS codetype,
+			map.PartnerCode AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			MAX(ibl.lastupdatedate) OVER(PARTITION BY pt.id, oo.AzureId, map.PartnerCode) AS edisonlastupdate,
+			eid.azureid as azureid,
+		    #{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+				ON pt.codetype = <include refid="MASTERBILLS"/>
+				AND pt.sysname = #{sysname}
+				AND pt.dbname = #{db}
+				AND pt.code = ibl.masterbl_no		
+			INNER JOIN inbound_job_main ibm (nolock) 
+				ON ibl.jobno=ibm.jobno
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = <include refid="EDIName"/>
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND map.OurCode IN ('O/A')  --Origin Agent
+			  --AND ibm.loadingagentcode = map.OurCode
+			LEFT JOIN <include refid="dbName"/> oo (NOLOCK) 
+				ON oo.codetype = 'ORGANIZATIONS'
+				AND oo.sysname = 'MASTERDATA'
+				AND pt.dbname = oo.dbname
+				AND ibm.loadingagentcode = oo.code
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+				ON pt.dbname = eid.dbname
+				AND pt.sysname = eid.sysname
+				AND eid.codetype = <include refid="MASTERBILLCONTACTS"/>
+				AND map.PartnerCode = eid.code3
+				AND CONVERT(VARCHAR(50),pt.id) = eid.code
+				AND CONVERT(VARCHAR(50),ISNULL(oo.AzureId, 0)) = eid.code2
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+		OR ibl.lastupdatedate > eid.lastupdate)
+		AND ibl.masterbl_no IS NOT NULL AND ibl.masterbl_no <![CDATA[ <> ]]> ''
+		<include refid="SONO_TEST_CASE"/>
+		UNION
+		SELECT DISTINCT eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			CONVERT(VARCHAR(50),pt.id) AS code, --MASTERBILLS id
+			CONVERT(VARCHAR(50),o.AzureId) AS code2, --ORGANIZTION id
+			NULL AS seq,
+			<include refid="MASTERBILLCONTACTS"/> AS codetype,
+			map.PartnerCode AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			MAX(ibl.lastupdatedate) OVER(PARTITION BY pt.id, o.AzureId, map.PartnerCode) AS edisonlastupdate,
+			eid.azureid as azureid,
+		    #{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+			INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+				ON pt.codetype = <include refid="MASTERBILLS"/>
+				AND pt.sysname = #{sysname}
+				AND pt.dbname = #{db}
+				AND pt.code = ibl.masterbl_no			
+			INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+				ON map.EDIName = <include refid="EDIName"/>
+				AND map.codetype = 'CMPYTYPE'
+				AND map.Status = 'Y'
+				AND map.OurCode IN ('A','P')  --Origin Agent and Principal
+			INNER JOIN <include refid="dbName"/> o (NOLOCK)
+				ON pt.dbname = o.dbname
+				AND o.sysname = 'MASTERDATA'
+				AND o.codetype = 'ORGANIZATIONS'
+				AND ((map.OurCode in ('P') and o.code IN (<include refid="PRINCIPAL_CODE"/>))
+						OR (map.OurCode in ('A') and o.code IN <include refid="comlist"/>))
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+				ON pt.dbname = eid.dbname
+				AND pt.sysname = eid.sysname
+				AND eid.codetype = <include refid="MASTERBILLCONTACTS"/>
+				AND map.PartnerCode = eid.code3
+				AND CONVERT(VARCHAR(50),pt.id) = eid.code
+				AND CONVERT(VARCHAR(50),o.AzureId) = eid.code2
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL	OR ibl.lastupdatedate > eid.lastupdate)
+		AND ibl.masterbl_no IS NOT NULL AND ibl.masterbl_no  <![CDATA[ <> ]]> ''
+		<include refid="SONO_TEST_CASE"/>
+	
+		
+	</sql>
+	<sql id="SHIPMENTCONTACTSSQL">
+		SELECT DISTINCT
+		blc.id AS id,
+       	CASE WHEN blc.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+       	#{db} AS dbname,
+       	RTRIM(cx.code) AS code,
+      	RTRIM(cx.code2) AS code2,
+       	NULL AS seq,
+       	<include refid="SHIPMENTCONTACTS"/> AS codetype,
+       	cx.code3 AS code3,
+       	blc.isetltoazure AS isetltoazure,
+       	blc.lastupdate AS lastupdate,
+       	MAX(cx.lastupdatedate) OVER(PARTITION BY cx.code, cx.code2, cx.code3) AS edisonlastupdate,
+	   	blc.azureid as azureid,
+		#{sysname} AS sysname
+		FROM
+			(
+			--Destination Agent, Principal, Consignee, 
+			SELECT 
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				CONVERT(VARCHAR(50), eid.AzureId) AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="SHIPMENTS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no			
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('P','C','A')
+				INNER JOIN <include refid="dbName"/> eid (NOLOCK) 
+					ON eid.codetype = 'ORGANIZATIONS'
+					AND eid.sysname = 'MASTERDATA'
+					AND pt.dbname = eid.dbname
+					AND ((map.OurCode in ('P','C') and eid.code IN (<include refid="PRINCIPAL_CODE"/>))
+						OR (map.OurCode in ('A') and eid.code IN <include refid="comlist"/>))
+			WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+			<include refid="SONO_TEST_CASE"/>
+			UNION
+			--Origin Agent, Supplier/Shipper
+			SELECT
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				0 AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="SHIPMENTS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no				
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('S','O/A')
+			WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+			<include refid="SONO_TEST_CASE"/>
+			UNION
+			-- Notify Party and Other party
+			SELECT
+				CONVERT(VARCHAR(50), pt.id) AS code,
+				0 AS code2,
+		        map.PartnerCode AS code3,
+		        ibl.lastupdatedate AS lastupdatedate
+			FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+					ON pt.codetype = <include refid="SHIPMENTS"/>
+					AND pt.dbname = #{db}
+					AND pt.sysname = #{sysname}
+					AND pt.code = ibl.housebl_no				
+				INNER JOIN <include refid="cvsDB"/>.dbo.edicodemap map (NOLOCK)
+					ON map.EDIName = <include refid="EDIName"/>
+					AND map.codetype = 'CMPYTYPE'
+					AND map.Status = 'Y'
+					AND map.OurCode in ('N1')
+			WHERE ibl.notifycode1 IS NOT NULL AND ibl.notifycode1 <![CDATA[ <> ]]> ''
+			AND ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+			<include refid="SONO_TEST_CASE"/>
+
+			
+		) AS cx--subquery table
+		LEFT JOIN <include refid="dbName"/> blc (NOLOCK)
+			ON blc.dbname = #{db}
+			AND blc.sysname = #{sysname}
+			AND blc.codetype = <include refid="SHIPMENTCONTACTS"/>
+			AND cx.code = blc.code
+			AND cx.code2 = blc.code2
+			AND cx.code3 = blc.code3
+		WHERE 1=1
+		AND (blc.lastupdate IS NULL 
+			OR cx.lastupdatedate > blc.lastupdate)
+			
+	</sql>
+	<sql id="ITINERARIESSQL">
+		SELECT DISTINCT
+			 t.id AS id,
+		     t.action AS action,
+		     t.dbname AS dbname,
+		     t.code AS code,
+		     t.code2 AS code2,
+		     t.seq AS seq,
+		     t.codetype AS codetype,
+		     t.code3 AS code3,
+		     t.isetltoazure AS isetltoazure,
+		     t.lastupdate AS lastupdate,
+		     MAX(t.edisonlastupdate) OVER(PARTITION BY t.code, t.seq) AS edisonlastupdate,
+			 t.azureid AS azureid,
+			 t.sysname AS sysname
+		FROM (
+	SELECT DISTINCT
+			eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			RTRIM(ibm.vesvoyno) AS code,
+			RTRIM(vf.voyage) AS code2,
+			1 AS seq,
+			<include refid="ITINERARIES"/> AS codetype,
+			NULL AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			(SELECT MAX(v) FROM (VALUES (ibm.lastupdatedate), (ibl.lastupdatedate), (vf.lastupdatedate)) AS value(v)) AS edisonlastupdate,
+			eid.azureid AS azureid,
+			#{sysname} AS sysname
+	FROM <include refid="dbName"/> pt (NOLOCK) 
+	INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)		
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+			AND pt.codetype = <include refid="SHIPMENTS"/>
+			AND pt.code = ibl.housebl_no
+	INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+	INNER JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno
+		LEFT JOIN dbo.vessel vv (NOLOCK) ON vf.vesselcode = vv.vesselcode
+		LEFT JOIN dbo.liner ll (NOLOCK)	ON vf.linercode = ll.linercode
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+			AND eid.codetype = <include refid="ITINERARIES"/>
+			AND ibm.vesvoyno = eid.code
+			AND eid.seq = 1
+	WHERE 1=1
+	AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+	AND (eid.lastupdate IS NULL
+		OR ibl.lastupdatedate > eid.lastupdate
+		OR ibm.lastupdatedate > eid.lastupdate
+		OR vf.lastupdatedate > eid.lastupdate)
+		<include refid="SONO_TEST_CASE"/>
+		)t
+	</sql>
+	<sql id="ACTIVITIESSQL">
+		SELECT DISTINCT eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			'2054' AS code,
+			'SM' AS code2,
+			pt.id AS seq,
+			<include refid="ACTIVITIES"/>AS codetype,
+			NULL AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			ibl.lastupdatedate AS edisonlastupdate,
+			eid.azureid as azureid,
+		    #{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_bl] ibl (NOLOCK)
+				ON pt.codetype = <include refid="SHIPMENTS"/>
+				AND pt.dbname = #{db}
+				AND pt.sysname = #{sysname}
+				AND pt.code = ibl.housebl_no	
+			INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK) ON ibl.jobno = ibm.jobno
+			LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+				ON pt.dbname = eid.dbname
+				AND pt.sysname = eid.sysname
+				AND eid.codetype = <include refid="ACTIVITIES"/>
+				AND eid.code = '2054'
+				AND eid.code2 = 'SM'
+				AND pt.id = eid.seq --ediSONETDId.SHIPMENTS.id
+			LEFT JOIN <include refid="cvsDB"/>.dbo.edicodemap mapp (NOLOCK)
+				ON mapp.EDIName = <include refid="EDIName"/>
+				AND mapp.CodeType = 'ETLPARAMETER'
+				AND mapp.Status = 'Y'
+				AND mapp.OurCode = 'SYSNAME_ACTIVITIES_2054_SKIP'
+				AND mapp.PartnerCode = pt.sysname
+		WHERE ibl.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND vf.eta_datedport IS NOT NULL 
+		AND vf.eta_datedport <![CDATA[ < ]]>= GETDATE()
+		AND mapp.Status IS NULL
+		AND (eid.lastupdate IS NULL 
+		OR ibl.lastupdatedate > eid.lastupdate)
+	
+		UNION
+		--Vessel cut-off date (3050)
+		SELECT DISTINCT eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			'3050' AS code,
+			'CA' AS code2,
+			pt.id AS seq,
+			<include refid="ACTIVITIES"/> AS codetype,
+			NULL AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			vf.lastupdatedate AS edisonlastupdate,
+			eid.azureid AS azureid,
+			#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+				INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK)
+				ON pt.dbname = #{db}
+				AND pt.sysname = #{sysname}
+				AND pt.codetype = <include refid="CONTAINERS"/>
+				AND pt.code = ibm.jobno
+				AND pt.code2 = ibm.cfs_containerno
+			INNER JOIN dbo.[inbound_bl] ibl (NOLOCK) ON ibl.jobno = ibm.jobno
+			LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+				ON pt.dbname = eid.dbname
+				AND pt.sysname = eid.sysname
+				AND eid.codetype = <include refid="ACTIVITIES"/>
+				AND eid.code = '3050'
+				AND eid.code2 = 'CA'
+				AND pt.id = eid.seq --ediSONETDId.CONTAINERS.id
+		WHERE vf.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND ibm.movement <![CDATA[ <> ]]> 'CY'
+		AND vf.cfs_closingdate IS NOT NULL 
+		AND (eid.lastupdate IS NULL 
+			OR vf.lastupdatedate > eid.lastupdate)
+		
+		UNION
+		--Vessel cut-off date (3051)
+		SELECT DISTINCT eid.id AS id,
+			CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+			#{db} AS dbname,
+			'3051' AS code,
+			'CA' AS code2,
+			pt.id AS seq,
+			<include refid="ACTIVITIES"/> AS codetype,
+			NULL AS code3,
+			eid.isetltoazure AS isetltoazure,
+			eid.lastupdate AS lastupdate,
+			vf.lastupdatedate AS edisonlastupdate,
+			eid.azureid AS azureid,
+			#{sysname} AS sysname
+		FROM <include refid="dbName"/> pt (NOLOCK) 
+			INNER JOIN dbo.[inbound_job_main] ibm (NOLOCK)
+				ON pt.dbname = #{db}
+				AND pt.sysname = #{sysname}
+				AND pt.codetype = <include refid="CONTAINERS"/>
+				AND pt.code = ibm.jobno
+			INNER JOIN dbo.[inbound_bl] ibl (NOLOCK) ON ibl.jobno = ibm.jobno
+			INNER JOIN dbo.[inbound_blitem] ibi (NOLOCK) ON ibl.housebl_no = ibi.housebl_no AND pt.code2 = ibi.containerno
+			LEFT JOIN dbo.vesvoyforwarder vf (NOLOCK) ON ibm.vesvoyno = vf.vesvoyno AND ibm.vesvoyno IS NOT NULL AND ibm.vesvoyno <![CDATA[ <> ]]> ''
+			LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+				ON pt.dbname = eid.dbname
+				AND pt.sysname = eid.sysname
+				AND eid.codetype = <include refid="ACTIVITIES"/>
+				AND eid.code = '3051'
+				AND eid.code2 = 'CA'
+				AND pt.id = eid.seq --ediSONETDId.CONTAINERS.id
+		WHERE vf.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND ibm.movement = 'CY' 
+		AND vf.cy_closingdate IS NOT NULL 
+		AND (eid.lastupdate IS NULL OR vf.lastupdatedate > eid.lastupdate)
+     </sql>
+	<sql id="PURCHASEORDERSSQL">
+	SELECT DISTINCT
+		   eid.id AS id,
+	       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+	       #{db} AS dbname,
+	       RTRIM(po.PONo) AS code,
+	       RTRIM(po.DestCode) AS code2,
+	       NULL AS seq,
+	       <include refid="PURCHASEORDERS"/> AS codetype,
+	       RTRIM(ISNULL(po.companycode,'')) + '~' + RTRIM(ISNULL(po.companytype,'')) + '~' + RTRIM(ISNULL(po.shipmentno,'')) AS code3,
+	       eid.isetltoazure AS isetltoazure,
+	       eid.lastupdate AS lastupdate,
+	       MAX(po.lastupdatedate) OVER(PARTITION BY po.PONo, po.DestCode, po.companycode, po.companytype, po.shipmentno) AS edisonlastupdate,
+		   eid.azureid as azureid,
+		   #{sysname} AS sysname
+	FROM <include refid="cvsDB"/>.dbo.CompanyValidPO po (NOLOCK)
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON eid.dbname = #{db}
+			AND eid.sysname = #{sysname}
+	        AND eid.codetype = <include refid="PURCHASEORDERS"/>
+			AND po.PONo = eid.code
+	        AND po.DestCode = eid.code2
+			AND RTRIM(ISNULL(po.companycode,'')) + '~' + RTRIM(ISNULL(po.companytype,'')) + '~' + RTRIM(ISNULL(po.shipmentno,'')) = eid.code3
+	WHERE po.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR po.lastupdatedate > eid.lastupdate)
+		AND ((eid.Id IS NULL AND ISNULL(po.Status, '') = 'O') OR (eid.id > 0))
+		AND RTRIM(po.PONo) <![CDATA[ <> ]]> ''
+		AND po.CompanyCode IN <include refid="polist"/>
+		AND po.lastupdatedate >= <include refid="cutoffPo"/>
+		<include refid="PONO_TEST_CASE"/>
+	</sql>
+	<sql id="CRUISEORDERSSQL">
+	SELECT DISTINCT
+		   eid.id AS id,
+	       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+	       #{db} AS dbname,
+	       RTRIM(po.PONo) AS code,
+	       RTRIM(po.DestCode) AS code2,
+	       NULL AS seq,
+	       'CRUISEORDERS' AS codetype,
+	       RTRIM(ISNULL(po.companycode,'')) + '~' + RTRIM(ISNULL(po.companytype,'')) + '~' + RTRIM(ISNULL(po.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,'')) AS code3,
+	       eid.isetltoazure AS isetltoazure,
+	       eid.lastupdate AS lastupdate,
+	       MAX(po.lastupdatedate) OVER(PARTITION BY po.PONo, po.DestCode, po.companycode, po.companytype, po.shipmentno) AS edisonlastupdate,
+		   eid.azureid as azureid,
+		   #{sysname} AS sysname
+	FROM <include refid="cvsDB"/>.dbo.CompanyValidPO po (NOLOCK)
+		INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS cs(NOLOCK)
+			ON po.CompanyCode = cs.CompanyCode
+			AND po.CompanyType = cs.CompanyType
+			AND po.PONo = cs.PONo
+			AND po.ItemNo = cs.ItemNo
+			AND po.ShipmentNo = cs.ShipmentNo
+			AND po.POSeq = cs.POSeq
+			AND po.DestCode = cs.DestCode
+		INNER JOIN (
+			SELECT DISTINCT cvm.PrincipalCode, cvm.PrincipalOrgID
+			FROM <include refid="cvsDB"/>.dbo.CruiseVesselMapOption cvm(NOLOCK)
+		) cvm ON po.CompanyCode = cvm.PrincipalCode
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK) 
+			ON eid.dbname = #{db}
+			AND eid.sysname = #{sysname}
+	        AND eid.codetype = 'CRUISEORDERS'
+			AND po.PONo = eid.code
+	        AND po.DestCode = eid.code2
+			AND RTRIM(ISNULL(po.companycode,'')) + '~' + RTRIM(ISNULL(po.companytype,'')) + '~' + RTRIM(ISNULL(po.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,'')) = eid.code3
+		LEFT JOIN (
+			SELECT epl.RefID, MAX(epl.CreatedOn) AS CreatedOn
+			FROM <include refid="ediProcessLog"/> epl (NOLOCK)
+			WHERE epl.Channel = 'IN'
+			AND epl.ProjectID = 'CRUISE-PO-EDI'
+			AND epl.PType = 'Manual-CSPOI'
+			AND epl.SYSID = 'csportaldb'
+			AND epl.Status = 'DONE'
+			GROUP BY epl.RefID
+		) elog ON RTRIM(ISNULL(po.companycode,'')) + ':' + RTRIM(ISNULL(po.companytype,'')) + ':' + RTRIM(ISNULL(po.shipmentno,'')) + ':' + RTRIM(ISNULL(po.destcode,'')) + ':' + RTRIM(ISNULL(po.pono,'')) + ':' + CONVERT(VARCHAR,ISNULL(po.poseq,'')) + ':' + RTRIM(ISNULL(po.itemno,'')) + ':' + RTRIM(ISNULL(cs.ship,'')) = elog.RefID
+	WHERE po.lastupdatedate >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL OR po.lastupdatedate > eid.lastupdate)
+		AND (elog.createdon IS NULL OR po.lastupdatedate > elog.createdon)
+		AND ((eid.Id IS NULL AND ISNULL(po.Status, '') = 'O') OR (eid.id > 0))
+		AND RTRIM(po.PONo) <![CDATA[ <> ]]> ''
+		AND cvm.PrincipalCode IN <include refid="polist"/>
+		AND po.lastupdatedate >= <include refid="cutoffPo"/>
+		<include refid="PONO_TEST_CASE"/>
+	</sql>
+	<sql id="CRUISEORDERWAREHOUSESQL">
+	SELECT DISTINCT
+		   eid.id AS id,
+	       CASE WHEN eid.id > 0 THEN 'UPDATE' ELSE 'NEW' END AS action,
+	       #{db} AS dbname,
+	       RTRIM(po.PONo) AS code,
+	       RTRIM(po.DestCode) AS code2,
+	       pt.id AS seq,
+	       'CRUISEORDERWAREHOUSE' AS codetype,
+	       RTRIM(ISNULL(cw.companycode,'')) + '~' + RTRIM(ISNULL(cw.companytype,'')) + '~' + RTRIM(ISNULL(cw.shipmentno,'')) + '~' + CONVERT(VARCHAR,ISNULL(cw.poseq,'')) + '~' + RTRIM(ISNULL(cw.itemno,'')) + '~' + RTRIM(ISNULL(cw.ship,'')) AS code3,
+	       eid.isetltoazure AS isetltoazure,
+	       eid.lastupdate AS lastupdate,
+	       cw.UpdatedOn AS edisonlastupdate,
+		   eid.azureid AS azureid,
+		   #{sysname} AS sysname
+	FROM <include refid="dbName"/> pt (NOLOCK) 
+		INNER JOIN <include refid="cvsDB"/>.dbo.CompanyValidPO po (NOLOCK)
+			ON pt.dbname = #{db}
+			AND pt.sysname = #{sysname}
+			AND pt.codetype = 'CRUISEORDERS'
+			AND pt.code = po.PONo
+			AND pt.code2 = po.DestCode
+		INNER JOIN <include refid="cvsDB"/>.dbo.CruiseSupplement AS cs(NOLOCK)
+			ON po.CompanyCode = cs.CompanyCode
+			AND po.CompanyType = cs.CompanyType
+			AND po.PONo = cs.PONo
+			AND po.ItemNo = cs.ItemNo
+			AND po.ShipmentNo = cs.ShipmentNo
+			AND po.POSeq = cs.POSeq
+			AND po.DestCode = cs.DestCode
+			AND pt.code3 = RTRIM(ISNULL(po.companycode,'')) + '~' + RTRIM(ISNULL(po.companytype,'')) + '~' + RTRIM(ISNULL(po.shipmentno,'')) + '~' + RTRIM(ISNULL(cs.ship,''))
+		INNER JOIN <include refid="cvsDB"/>.dbo.CruiseWMSOMR cw (NOLOCK)
+			ON po.CompanyCode = cw.CompanyCode
+			AND po.CompanyType = cw.CompanyType
+			AND po.PONo = cw.PONo
+			AND po.POSeq = cw.POSeq
+			AND po.ItemNo = cw.ItemNo
+			AND po.ShipmentNo = cw.ShipmentNo
+			AND po.DestCode = cw.DestCode
+			AND cs.ship = cw.ship
+			AND cw.[Index] = 1
+		INNER JOIN (
+			SELECT DISTINCT cvm.PrincipalCode, cvm.PrincipalOrgID
+			FROM <include refid="cvsDB"/>.dbo.CruiseVesselMapOption cvm(NOLOCK)
+		) cvm ON po.CompanyCode = cvm.PrincipalCode
+		LEFT JOIN <include refid="dbName"/> eid (NOLOCK)
+			ON pt.dbname = eid.dbname
+			AND pt.sysname = eid.sysname
+	        AND eid.codetype = 'CRUISEORDERWAREHOUSE'
+			AND cw.PONo = eid.code
+	        AND cw.DestCode = eid.code2
+			AND RTRIM(ISNULL(cw.companycode,'')) + '~' + RTRIM(ISNULL(cw.companytype,'')) + '~' + RTRIM(ISNULL(cw.shipmentno,'')) + '~' + CONVERT(VARCHAR,ISNULL(cw.poseq,'')) + '~' + RTRIM(ISNULL(cw.itemno,'')) + '~' + RTRIM(ISNULL(cw.ship,'')) = eid.code3
+	WHERE cw.UpdatedOn >= <include refid="lastupdatedate"/>
+		AND (eid.lastupdate IS NULL
+			OR cw.UpdatedOn > eid.lastupdate)
+		AND RTRIM(cw.PONo) <![CDATA[ <> ]]> ''
+		AND cvm.PrincipalCode IN <include refid="polist"/>
+		AND cw.UpdatedOn >= <include refid="cutoffPo"/>
+		<include refid="PONO_TEST_CASE"/>
+	</sql>
+	<select id="findEdisonIDBySONO" parameterType="java.lang.String" resultType="EdisonLog">
+        SELECT * FROM <include refid="dbName"/> 
+        	WHERE [status] = 'DONE' 
+        		AND dbname = #{db}
+        		AND sysname = #{sysname}
+        		AND code = #{sono}
+        		AND codetype = #{type}
+        		AND seq = #{soseq}
+    </select>
+</mapper>

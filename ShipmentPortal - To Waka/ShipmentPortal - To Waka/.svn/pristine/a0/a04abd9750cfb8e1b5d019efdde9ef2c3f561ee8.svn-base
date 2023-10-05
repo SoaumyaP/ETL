@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="cacheEnabled" value="true"/>
+		<setting name="lazyLoadingEnabled" value="true"/>
+		<setting name="defaultStatementTimeout" value="5400"/>
+		<setting name="defaultFetchSize" value="20000"/>
+    	<setting name="logImpl" value="LOG4J"/>
+	</settings>
+    <typeAliases>
+		<typeAlias alias="EdisonLog" type="com.csfe.edison.business.entity.EdisonLog"/>
+		<typeAlias alias="Shipments" type="com.csfe.etl.business.entity.Shipments"/>
+		<typeAlias alias="BillOfLadings" type="com.csfe.etl.business.entity.BillOfLadings"/>
+		<typeAlias alias="MasterBills" type="com.csfe.etl.business.entity.MasterBills"/>
+		<typeAlias alias="Containers" type="com.csfe.etl.business.entity.Containers"/>
+		<typeAlias alias="Consolidations" type="com.csfe.etl.business.entity.Consolidations"/>
+		<typeAlias alias="Consignments" type="com.csfe.etl.business.entity.Consignments"/>
+		<typeAlias alias="CargoDetails" type="com.csfe.etl.business.entity.CargoDetails"/>
+		<typeAlias alias="ShipmentLoads" type="com.csfe.etl.business.entity.ShipmentLoads"/>
+		<typeAlias alias="ShipmentLoadDetails" type="com.csfe.etl.business.entity.ShipmentLoadDetails"/>
+		<typeAlias alias="BillOfLadingContacts" type="com.csfe.etl.business.entity.BillOfLadingContacts"/>
+		<typeAlias alias="MasterBillContacts" type="com.csfe.etl.business.entity.MasterBillContacts"/>
+		<typeAlias alias="ShipmentContacts" type="com.csfe.etl.business.entity.ShipmentContacts"/>
+		<typeAlias alias="Itineraries" type="com.csfe.etl.business.entity.Itineraries"/>
+		<typeAlias alias="BillOfLadingConsignments" type="com.csfe.etl.business.entity.BillOfLadingConsignments"/>
+		<typeAlias alias="BillOfLadingItineraries" type="com.csfe.etl.business.entity.BillOfLadingItineraries"/>
+		<typeAlias alias="ShipmentBillOfLadings" type="com.csfe.etl.business.entity.ShipmentBillOfLadings"/>
+		<typeAlias alias="BillOfLadingShipmentLoads" type="com.csfe.etl.business.entity.BillOfLadingShipmentLoads"/>
+		<typeAlias alias="ConsignmentItineraries" type="com.csfe.etl.business.entity.ConsignmentItineraries"/>
+		<typeAlias alias="ContainerItineraries" type="com.csfe.etl.business.entity.ContainerItineraries"/>
+		<typeAlias alias="MasterBillItineraries" type="com.csfe.etl.business.entity.MasterBillItineraries"/>
+		<typeAlias alias="Activities" type="com.csfe.etl.business.entity.Activities"/>
+		<typeAlias alias="Organizations" type="com.csfe.etl.business.entity.master.Organizations"/>
+		<typeAlias alias="PurchaseOrders" type="com.csfe.etl.business.entity.po.PurchaseOrders"/>
+		<typeAlias alias="Contacts" type="com.csfe.etl.business.entity.po.Contacts"/>
+		<typeAlias alias="POFulfillment" type="com.csfe.etl.business.entity.POFulfillment.POFulfillment"/>
+		<typeAlias alias="CruiseOrders" type="com.csfe.etl.business.entity.Cruise.CruiseOrders"/>
+		<typeAlias alias="CruiseOrderContacts" type="com.csfe.etl.business.entity.Cruise.CruiseOrderContacts"/>
+		<typeAlias alias="CruiseOrderWarehouse" type="com.csfe.etl.business.entity.Cruise.CruiseOrderWarehouse"/>
+
+	</typeAliases>
+    <plugins>
+        <plugin interceptor="com.csfe.etl.business.interceptor.ShipmentPortalInterceptor"/>
+    </plugins>
+    <mappers>
+        <mapper resource="mapper/AzureMapper.xml"></mapper>
+        <mapper resource="mapper/EmailMapper.xml"></mapper>
+        <mapper resource="mapper/Portocargo/LogMapper.xml"></mapper>
+        <mapper resource="mapper/Portocargo/EdisonMapper.xml"></mapper>
+    </mappers>
+</configuration>

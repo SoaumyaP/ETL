@@ -1,0 +1,23 @@
+##################################
+#  DB Settings Properties file #
+##################################
+# DB connection driver
+#DriverName    =net.sourceforge.jtds.jdbc.Driver
+DriverName    =com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# change connection URL
+#URL           =jdbc\:jtds\:sqlserver\://HKG-SQL9\:1433/
+URL           =jdbc\:sqlserver\://HKG-SQL9\:1433
+
+# change  the db name 
+DataBaseName  =edison_prc_hgh_nvo
+
+# change  the user name
+USERNAME      =
+
+# change the password
+PASSWORD      =
+
+DataBaseInstance =
+
+DataBaseAppName =ShipmentPortal

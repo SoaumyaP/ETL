@@ -1,0 +1,312 @@
+package com.csfe.etl.business.entity.POFulfillment;
+
+import java.util.List;
+
+public class POFulfillmentImport {
+
+	public String Owner;
+	public String Status;
+	public String CargoReadyDate;
+	public String ExpectedShipDate;
+	public String ExpectedDeliveryDate;
+	public String Incoterm;
+	public String ModdeOfTransport;
+	public String PreferredCarrier;
+	public String LogisicsService;
+	public String MovementType;
+	public String ShipTo;
+	public String DeliveryPort;
+	public String ReceiptPort;
+	public Boolean Remarks;
+	public Boolean IsContainDangerousGoods;
+	public Boolean IsShipperPickup;
+	public Boolean IsNotifyPartyAsConsignee;
+	public Boolean IsBatteryOrChemical;
+	public Boolean IsCIQOrFumigation;
+	public Boolean IsExportLicence;
+	public String BookingDate;
+	public String VesselName;
+	public String VoyageNo;
+	public String CreatedBy;
+	public String CreatedDate;
+	public String UpdatedBy;
+	public String UpdateDate;
+	public List<Contacts> Contacts;
+	public List<Load> Loads;
+	public List<CustomerPO> CustomerPOs;
+	public String CustomerBookingNO;
+	public String SONumber;
+	public String BillOfLadingHeader;
+	public String CYEmptyPickupTerminalCode;
+	public String CYEmptyPickupTerminalDescription;
+	public String CFSWarehouseCode;
+	public String CFSWarehouseDescription;
+	public String CYClosingDate;
+	public String CFSClosingDate;
+	public List<Leg> Legs;
+
+	
+	public String getOwner() {
+		return Owner;
+	}
+	public void setOwner(String owner) {
+		Owner = owner;
+	}
+	public String getStatus() {
+		return Status;
+	}
+	public void setStatus(String status) {
+		Status = status;
+	}
+	public String getCargoReadyDate() {
+		return CargoReadyDate;
+	}
+	public void setCargoReadyDate(String cargoReadyDate) {
+		CargoReadyDate = cargoReadyDate;
+	}
+	public String getExpectedShipDate() {
+		return ExpectedShipDate;
+	}
+	public void setExpectedShipDate(String expectedShipDate) {
+		ExpectedShipDate = expectedShipDate;
+	}
+	public String getExpectedDeliveryDate() {
+		return ExpectedDeliveryDate;
+	}
+	public void setExpectedDeliveryDate(String expectedDeliveryDate) {
+		ExpectedDeliveryDate = expectedDeliveryDate;
+	}
+	public String getIncoterm() {
+		return Incoterm;
+	}
+	public void setIncoterm(String incoterm) {
+		Incoterm = incoterm;
+	}
+	public String getModdeOfTransport() {
+		return ModdeOfTransport;
+	}
+	public void setModdeOfTransport(String moddeOfTransport) {
+		ModdeOfTransport = moddeOfTransport;
+	}
+	public String getPreferredCarrier() {
+		return PreferredCarrier;
+	}
+	public void setPreferredCarrier(String preferredCarrier) {
+		PreferredCarrier = preferredCarrier;
+	}
+	public String getLogisicsService() {
+		return LogisicsService;
+	}
+	public void setLogisicsService(String logisicsService) {
+		LogisicsService = logisicsService;
+	}
+	public String getMovementType() {
+		return MovementType;
+	}
+	public void setMovementType(String movementType) {
+		MovementType = movementType;
+	}
+	public String getShipTo() {
+		return ShipTo;
+	}
+	public void setShipTo(String shipTo) {
+		ShipTo = shipTo;
+	}
+	public String getDeliveryPort() {
+		return DeliveryPort;
+	}
+	public void setDeliveryPort(String deliveryPort) {
+		DeliveryPort = deliveryPort;
+	}
+	public String getReceiptPort() {
+		return ReceiptPort;
+	}
+	public void setReceiptPort(String receiptPort) {
+		ReceiptPort = receiptPort;
+	}
+	public Boolean getRemarks() {
+		return Remarks;
+	}
+	public void setRemarks(Boolean remarks) {
+		Remarks = remarks;
+	}
+	public Boolean getIsContainDangerousGoods() {
+		return IsContainDangerousGoods;
+	}
+	public void setIsContainDangerousGoods(Boolean isContainDangerousGoods) {
+		IsContainDangerousGoods = isContainDangerousGoods;
+	}
+	public Boolean getIsShipperPickup() {
+		return IsShipperPickup;
+	}
+	public void setIsShipperPickup(Boolean isShipperPickup) {
+		IsShipperPickup = isShipperPickup;
+	}
+	public Boolean getIsNotifyPartyAsConsignee() {
+		return IsNotifyPartyAsConsignee;
+	}
+	public void setIsNotifyPartyAsConsignee(Boolean isNotifyPartyAsConsignee) {
+		IsNotifyPartyAsConsignee = isNotifyPartyAsConsignee;
+	}
+	public Boolean getIsBatteryOrChemical() {
+		return IsBatteryOrChemical;
+	}
+	public void setIsBatteryOrChemical(Boolean isBatteryOrChemical) {
+		IsBatteryOrChemical = isBatteryOrChemical;
+	}
+	public Boolean getIsCIQOrFumigation() {
+		return IsCIQOrFumigation;
+	}
+	public void setIsCIQOrFumigation(Boolean isCIQOrFumigation) {
+		IsCIQOrFumigation = isCIQOrFumigation;
+	}
+	public Boolean getIsExportLicence() {
+		return IsExportLicence;
+	}
+	public void setIsExportLicence(Boolean isExportLicence) {
+		IsExportLicence = isExportLicence;
+	}
+	public String getBookingDate() {
+		return BookingDate;
+	}
+	public void setBookingDate(String bookingDate) {
+		BookingDate = bookingDate;
+	}
+	public String getVesselName() {
+		return VesselName;
+	}
+	public void setVesselName(String vesselName) {
+		VesselName = vesselName;
+	}
+	public String getVoyageNo() {
+		return VoyageNo;
+	}
+	public void setVoyageNo(String voyageNo) {
+		VoyageNo = voyageNo;
+	}
+	public String getCreatedBy() {
+		return CreatedBy;
+	}
+	public void setCreatedBy(String createdBy) {
+		CreatedBy = createdBy;
+	}
+	public String getCreatedDate() {
+		return CreatedDate;
+	}
+	public void setCreatedDate(String createdDate) {
+		CreatedDate = createdDate;
+	}
+	public String getUpdatedBy() {
+		return UpdatedBy;
+	}
+	public void setUpdatedBy(String updatedBy) {
+		UpdatedBy = updatedBy;
+	}
+	public String getUpdateDate() {
+		return UpdateDate;
+	}
+	public void setUpdateDate(String updateDate) {
+		UpdateDate = updateDate;
+	}
+	 
+	public List<Contacts> getContacts() {
+		return Contacts;
+	}
+	public void setContacts(List<Contacts> contacts) {
+		Contacts = contacts;
+	}
+	public List<Load> getLoads() {
+		return Loads;
+	}
+	public void setLoads(List<Load> loads) {
+		Loads = loads;
+	}
+	public List<CustomerPO> getCustomerPOs() {
+		return CustomerPOs;
+	}
+	public void setCustomerPOs(List<CustomerPO> customerPOs) {
+		CustomerPOs = customerPOs;
+	}
+	public String getCustomerBookingNO() {
+		return CustomerBookingNO;
+	}
+	public void setCustomerBookingNO(String customerBookingNO) {
+		CustomerBookingNO = customerBookingNO;
+	}
+	public String getSONumber() {
+		return SONumber;
+	}
+	public void setSONumber(String sONumber) {
+		SONumber = sONumber;
+	}
+	public String getBillOfLadingHeader() {
+		return BillOfLadingHeader;
+	}
+	public void setBillOfLadingHeader(String billOfLadingHeader) {
+		BillOfLadingHeader = billOfLadingHeader;
+	}
+	public String getCYEmptyPickupTerminalCode() {
+		return CYEmptyPickupTerminalCode;
+	}
+	public void setCYEmptyPickupTerminalCode(String cYEmptyPickupTerminalCode) {
+		CYEmptyPickupTerminalCode = cYEmptyPickupTerminalCode;
+	}
+	public String getCYEmptyPickupTerminalDescription() {
+		return CYEmptyPickupTerminalDescription;
+	}
+	public void setCYEmptyPickupTerminalDescription(String cYEmptyPickupTerminalDescription) {
+		CYEmptyPickupTerminalDescription = cYEmptyPickupTerminalDescription;
+	}
+	public String getCFSWarehouseCode() {
+		return CFSWarehouseCode;
+	}
+	public void setCFSWarehouseCode(String cFSWarehouseCode) {
+		CFSWarehouseCode = cFSWarehouseCode;
+	}
+	public String getCFSWarehouseDescription() {
+		return CFSWarehouseDescription;
+	}
+	public void setCFSWarehouseDescription(String cFSWarehouseDescription) {
+		CFSWarehouseDescription = cFSWarehouseDescription;
+	}
+	public String getCYClosingDate() {
+		return CYClosingDate;
+	}
+	public void setCYClosingDate(String cYClosingDate) {
+		CYClosingDate = cYClosingDate;
+	}
+	public String getCFSClosingDate() {
+		return CFSClosingDate;
+	}
+	public void setCFSClosingDate(String cFSClosingDate) {
+		CFSClosingDate = cFSClosingDate;
+	}
+	public List<Leg> getLegs() {
+		return Legs;
+	}
+	public void setLegs(List<Leg> legs) {
+		Legs = legs;
+	}
+	@Override
+	public String toString() {
+		return "POFulfillments [Owner=" + Owner + ", Status=" + Status + ", CargoReadyDate=" + CargoReadyDate
+				+ ", ExpectedShipDate=" + ExpectedShipDate + ", ExpectedDeliveryDate=" + ExpectedDeliveryDate
+				+ ", Incoterm=" + Incoterm + ", ModdeOfTransport=" + ModdeOfTransport + ", PreferredCarrier="
+				+ PreferredCarrier + ", LogisicsService=" + LogisicsService + ", MovementType=" + MovementType
+				+ ", ShipTo=" + ShipTo + ", DeliveryPort=" + DeliveryPort + ", ReceiptPort=" + ReceiptPort
+				+ ", Remarks=" + Remarks + ", IsContainDangerousGoods=" + IsContainDangerousGoods + ", IsShipperPickup="
+				+ IsShipperPickup + ", IsNotifyPartyAsConsignee=" + IsNotifyPartyAsConsignee + ", IsBatteryOrChemical="
+				+ IsBatteryOrChemical + ", IsCIQOrFumigation=" + IsCIQOrFumigation + ", IsExportLicence="
+				+ IsExportLicence + ", BookingDate=" + BookingDate + ", VesselName=" + VesselName + ", VoyageNo="
+				+ VoyageNo + ", CreatedBy=" + CreatedBy + ", CreatedDate=" + CreatedDate + ", UpdatedBy=" + UpdatedBy
+				+ ", UpdateDate=" + UpdateDate + ", Contacts=" + Contacts + ", Loads=" + Loads + ", CustomerPOs="
+				+ CustomerPOs + ", CustomerBookingNO=" + CustomerBookingNO + ", SONumber=" + SONumber
+				+ ", BillOfLadingHeader=" + BillOfLadingHeader + ", CYEmptyPickupTerminalCode="
+				+ CYEmptyPickupTerminalCode + ", CYEmptyPickupTerminalDescription=" + CYEmptyPickupTerminalDescription
+				+ ", CFSWarehouseCode=" + CFSWarehouseCode + ", CFSWarehouseDescription=" + CFSWarehouseDescription
+				+ ", CYClosingDate=" + CYClosingDate + ", CFSClosingDate=" + CFSClosingDate + ", Legs=" + Legs + "]";
+	}
+	
+	
+
+}

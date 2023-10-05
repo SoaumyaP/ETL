@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" 
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	   		http://www.springframework.org/schema/aop
+	   		http://www.springframework.org/schema/aop/spring-aop.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	   		http://www.springframework.org/schema/jee
+	   		http://www.springframework.org/schema/jee/spring-jee.xsd
+        	http://www.springframework.org/schema/lang
+        	http://www.springframework.org/schema/lang/spring-lang.xsd
+        	http://www.springframework.org/schema/tx
+        	http://www.springframework.org/schema/tx/spring-tx.xsd
+        	http://www.springframework.org/schema/util
+        	http://www.springframework.org/schema/util/spring-util.xsd
+			http://www.springframework.org/schema/mvc 
+			http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+	
+	<bean id="email-DB-PC"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:conf/db/dbEmailDelivery.properties</value>
+			</list>
+		</property>
+		<property name="placeholderPrefix" value="$email{" />
+		<property name="placeholderSuffix" value="}" />
+	</bean>
+	
+	<bean id="emailDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="$email{DriverName}" />
+		<property name="url" value="$email{URL}$email{DataBaseName};instance=$email{DataBaseInstance};appName=$email{DataBaseAppName};autoReconnect=true;" />
+		<property name="username" value="$email{USERNAME}" />
+		<property name="password" value="$email{PASSWORD}" />
+		<property name="validationQuery" value="SELECT 1" />
+		<property name="testOnBorrow" value="true" />
+	</bean>
+	
+	 <bean id="emailSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="emailDataSource" />
+        <property name="configLocation" value="classpath:conf/mybatis-Cruise-config.xml" />
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+       <property name="basePackage" value="com.csfe.common.business.dao.delivery" />
+       <property name="sqlSessionFactoryBeanName" value="emailSessionFactory" />
+    </bean>
+    <bean id="emailTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="emailDataSource" />
+    </bean>
+    <tx:annotation-driven transaction-manager="emailTransactionManager" />
+    <!--
+    <bean id="ETLDeliveryReq" class="com.csfe.common.business.entity.ETLNotification">
+		<property name="reqID" value="0"/>
+	    <property name="systemID" value="${System.SystemID}"/>
+	    <property name="emailFrom" value="${mailServer.EmailFrom}"/>
+	    <property name="emailTo" value="${Alert.msg.EmailTo}"/>
+	    <property name="emailCC" value="${Alert.msg.EmailCC}"/>
+	    <property name="emailBCC" value="${Alert.msg.EmailBCC}"/>
+	    <property name="emailSubject" value="${Alert.msg.EmailSubject}"/>
+	    <property name="status" value="PEND"/>
+	    <property name="createdBy" value="${System.UserID}"/>
+	    <property name="updatedBy" value="${System.UserID}"/>
+	</bean>
+	-->
+</beans>

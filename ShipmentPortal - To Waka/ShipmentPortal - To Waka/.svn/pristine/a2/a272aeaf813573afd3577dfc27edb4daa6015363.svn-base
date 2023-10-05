@@ -1,0 +1,21 @@
+##################################
+#  DB Settings Properties file #
+##################################
+# DB connection driver
+DriverName    =net.sourceforge.jtds.jdbc.Driver
+
+# change connection URL
+URL           =jdbc\:jtds\:sqlserver\://CARGO-SQL6\:1433/
+
+# change  the db name 
+DataBaseName  =CSHKG_EMAIL_UTILITY
+
+# change  the user name
+USERNAME      =
+
+# change the password
+PASSWORD      =
+
+DataBaseInstance =
+
+DataBaseAppName =ShipmentPortal

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="HKG-DB-PC" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:conf/db/db-HKHKG.properties</value>
+            </list>
+        </property>
+        <property name="placeholderPrefix" value="$hkg{" />
+        <property name="placeholderSuffix" value="}" />
+    </bean>
+
+    <bean id="hkgDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+          destroy-method="close">
+        <property name="driverClassName" value="$hkg{DriverName}" />
+        <property name="url" value="$hkg{URL};database=$hkg{DataBaseName};instance=$hkg{DataBaseInstance};appName=$hkg{DataBaseAppName};autoReconnect=true;" />
+        <property name="username" value="$hkg{USERNAME}" />
+        <property name="password" value="$hkg{PASSWORD}" />
+        <property name="validationQuery" value="SELECT 1" />
+        <property name="testOnBorrow" value="true" />
+    </bean>
+
+    <!-- HKG session factory -->
+    <bean id="HKGHKSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="hkgDataSource"/>
+        <property name="configLocation" value="classpath:conf/mybatis-UPS-config.xml"/>
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.csfe.UpdatePaymentStatus.business.dao" />
+        <property name="sqlSessionFactoryBeanName" value="HKGHKSessionFactory" />
+    </bean>
+</beans>

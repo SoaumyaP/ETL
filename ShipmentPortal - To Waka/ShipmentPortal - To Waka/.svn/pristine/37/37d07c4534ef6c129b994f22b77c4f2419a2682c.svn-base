@@ -1,0 +1,11 @@
+package com.csfe.edison.business.dao;
+
+import com.csfe.common.CSFEException;
+import com.csfe.edison.business.entity.Payment;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface PaymentDAO {
+    List<Payment> findInvoicePaymentStatus(@Param("db")String db) throws CSFEException;
+}

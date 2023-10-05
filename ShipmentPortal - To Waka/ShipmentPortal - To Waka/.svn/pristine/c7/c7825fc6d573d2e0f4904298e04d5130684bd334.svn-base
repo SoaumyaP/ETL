@@ -1,0 +1,19 @@
+##########################
+# EMAIL Setting          #
+##########################
+mailServer.SMTP = smtp.cargofe.com
+mailServer.SMTP-port = 25
+mailServer.login = 
+mailServer.password = 
+mailServer.EmailFrom = Admin<shipmentPortalETL-admin@cargofe.com>
+mailServer.EmailTo = Jonathan Yip<jonathanyip@cargofe.com>;
+mailServer.EmailCC = 
+mailServer.EmailBCC = 
+mailServer.EmailSubject = [TEST] [Error] Shipment Portal (ETL)- System got problem
+mailServer.EmailBody = This is an error alert from Shipment Portal (ETL), please kindly go to system and follow it up.\n\n\n\n
+mailServer.EmailAttachment = 
+mailServer.EmailEmbeddedImgList = C:/Projects/workspace/eRate/WebContent/images/background.png~~C:/Projects/workspace/eRate/WebContent/images/logo.png~~C:/Projects/workspace/eRate/WebContent/images/eRate.jpg
+mailServer.EmailNotifyEmbeddedImgList = C:/Projects/workspace/eRate/WebContent/images/background.png~~C:/Projects/workspace/eRate/WebContent/images/eRate.jpg
+#ContenType - TEXT / HTML
+mailServer.EmailContentType = HTML
+mailServer.AutoReplyMsg = --- This is a system generated message. Please do not reply. ---
